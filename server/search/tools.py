@@ -9,6 +9,7 @@ from pydantic import Field, ValidationError, field_validator
 from client.pool import get_client
 from client.search.client import SearchClient
 from config.api import DEFAULT_LIMIT
+from config.mcp.annotations import READ_ONLY
 from config.mcp.descriptions import (
     PAGE_DESCRIPTION,
     SEARCH_LIMIT_DESCRIPTION,
@@ -192,6 +193,7 @@ def register_search_tools(
 
     @mcp.tool(
         name="search_shows",
+        annotations=READ_ONLY,
         description="Search for TV shows on Trakt by title",
     )
     async def search_shows_tool(
@@ -208,6 +210,7 @@ def register_search_tools(
 
     @mcp.tool(
         name="search_movies",
+        annotations=READ_ONLY,
         description="Search for movies on Trakt by title",
     )
     async def search_movies_tool(

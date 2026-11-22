@@ -13,6 +13,7 @@ from config.transport import (
     ENV_HOST,
     ENV_LEGACY_SSE,
     ENV_PORT,
+    ENV_READ_ONLY,
     ENV_STATELESS,
     ENV_TRANSPORT,
     TRANSPORT_HTTP,
@@ -36,6 +37,7 @@ class TransportSettings:
     allowed_hosts: tuple[str, ...] = ()
     stateless: bool = False
     legacy_sse: bool = True
+    read_only: bool = False
 
 
 def _split_csv(value: str) -> tuple[str, ...]:
@@ -120,6 +122,13 @@ def load_settings(
         except argparse.ArgumentTypeError as error:
             parser.error(f"{ENV_LEGACY_SSE}: {error}")
 
+    read_only = False
+    if environment.get(ENV_READ_ONLY) is not None:
+        try:
+            read_only = _flag(environment[ENV_READ_ONLY])
+        except argparse.ArgumentTypeError as error:
+            parser.error(f"{ENV_READ_ONLY}: {error}")
+
     return TransportSettings(
         transport=transport,
         host=args.host or environment.get(ENV_HOST) or DEFAULT_HOST,
@@ -128,4 +137,5 @@ def load_settings(
         allowed_hosts=_split_csv(environment.get(ENV_ALLOWED_HOSTS, "")),
         stateless=environment.get(ENV_STATELESS, "").strip().lower() in _TRUE_VALUES,
         legacy_sse=legacy_sse,
+        read_only=read_only,
     )

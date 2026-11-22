@@ -13,6 +13,7 @@ from client.people.movies import PersonMoviesClient
 from client.people.shows import PersonShowsClient
 from client.people.summary import PersonSummaryClient
 from client.pool import get_client
+from config.mcp.annotations import READ_ONLY
 from config.mcp.descriptions import (
     EXTENDED_DESCRIPTION,
     LIST_SORT_DESCRIPTION,
@@ -206,6 +207,7 @@ def register_people_tools(
 
     @mcp.tool(
         name="fetch_person_summary",
+        annotations=READ_ONLY,
         description=(
             "Get person details from Trakt. "
             "Default (extended=true): full biographical data including "
@@ -224,6 +226,7 @@ def register_people_tools(
 
     @mcp.tool(
         name="fetch_person_movies",
+        annotations=READ_ONLY,
         description=(
             "Get all movie credits for a person from Trakt. "
             "Returns cast roles and crew positions grouped by "
@@ -240,6 +243,7 @@ def register_people_tools(
 
     @mcp.tool(
         name="fetch_person_shows",
+        annotations=READ_ONLY,
         description=(
             "Get all show credits for a person from Trakt. "
             "Returns cast roles with episode counts and crew "
@@ -256,6 +260,7 @@ def register_people_tools(
 
     @mcp.tool(
         name="fetch_person_lists",
+        annotations=READ_ONLY,
         description=(
             "Get lists containing a specific person from Trakt. "
             "Returns personal or official lists sorted by "

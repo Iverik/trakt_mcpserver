@@ -130,3 +130,21 @@ def test_run_http_serves_the_app(monkeypatch: pytest.MonkeyPatch) -> None:
     main_module.run(["--transport", "http", "--port", "9001"])
 
     assert [(s.transport, s.port) for s in served] == [("http", 9001)]
+
+
+def test_read_only_defaults_off() -> None:
+    assert load_settings([], {}).read_only is False
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [("true", True), ("1", True), ("YES", True), ("false", False), ("0", False)],
+)
+def test_read_only_env_spellings(value: str, expected: bool) -> None:
+    assert load_settings([], {"TRAKT_MCP_READ_ONLY": value}).read_only is expected
+
+
+@pytest.mark.parametrize("value", ["maybe", "", "on"])
+def test_read_only_invalid_env_exits(value: str) -> None:
+    with pytest.raises(SystemExit):
+        load_settings([], {"TRAKT_MCP_READ_ONLY": value})

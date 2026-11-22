@@ -998,6 +998,7 @@ One app serves everything:
 | `TRAKT_MCP_ALLOWED_ORIGINS` | empty | Comma-separated browser origins allowed to call `/mcp` and `/sse`, for example `https://claude.ai`. Matching is exact, so list each scheme and host |
 | `TRAKT_MCP_ALLOWED_HOSTS` | empty | Comma-separated `Host` header values to accept, for example `trakt.example.com,trakt:8080`. `host:*` matches any port |
 | `TRAKT_MCP_LEGACY_SSE` | `true` | `false` stops serving the deprecated `/sse` and `/messages/` routes (they return `404`) and skips their deprecation warning; `/mcp` and `/healthz` are unaffected. Accepts `true`/`false`, `1`/`0`, `yes`/`no`, any case; anything else is a usage error. The `--no-legacy-sse` flag wins |
+| `TRAKT_MCP_READ_ONLY` | `false` | `true` registers only read-only tools, so nothing can change your Trakt account (works over stdio and HTTP). Startup logs how many tools were left out. Accepts `true`/`false`, `1`/`0`, `yes`/`no`, any case; anything else is a usage error |
 | `TRAKT_MCP_STATELESS` | `false` | `true` keeps no per-client session, so a restart never invalidates one. The Docker image sets it |
 
 **Origin check.** A request with no `Origin` header is accepted: that is any non-browser client, such as a reverse proxy or an OAuth gateway calling server to server. A request that carries one must match `TRAKT_MCP_ALLOWED_ORIGINS`, otherwise it gets `403`. With the variable empty, every request that carries an Origin is rejected. If claude.ai connects through a gateway that forwards its `Origin`, set `TRAKT_MCP_ALLOWED_ORIGINS=https://claude.ai`.
@@ -1005,6 +1006,18 @@ One app serves everything:
 **Host check.** Bound to loopback with `TRAKT_MCP_ALLOWED_HOSTS` empty, only `127.0.0.1`, `localhost` and `[::1]` are accepted. Bound to any other address with it empty, the `Host` header is not checked, because the right value depends on the proxy in front. Behind a proxy that forwards `Host: trakt:8080`, set `TRAKT_MCP_ALLOWED_HOSTS=trakt:8080` to turn the check on. A rejected host gets `421`.
 
 The server has no login of its own: expose it only behind something that authenticates callers (an OAuth gateway or a private network).
+
+### Tool annotations and read-only mode
+
+Every tool carries MCP annotations so a client can tell reads from writes and ask before running one:
+
+| Preset | Hints | Tools |
+|--------|-------|-------|
+| Read-only | `readOnlyHint` | All `fetch_*` and `search_*` tools, `unwatched_in_collection`, `have_i_seen` |
+| Write | `readOnlyHint=false`, `destructiveHint=false` | `add_*`, `create_user_list`, `checkin_*`, `hide_*`/`unhide_*` recommendations, `start_device_auth`, `check_auth_status` |
+| Destructive | `readOnlyHint=false`, `destructiveHint=true`, `idempotentHint` | `remove_*`, `cancel_checkin`, `clear_auth` |
+
+All presets set `openWorldHint`, because every tool calls Trakt. Content from Trakt (list names, comments, overviews) can carry instructions meant for the model, so keep your client's confirmation prompts on for non-read-only tools. For a server that can only read, set `TRAKT_MCP_READ_ONLY=true`: tools not annotated read-only are never registered.
 
 ## 🐳 Docker Deployment
 

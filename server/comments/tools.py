@@ -13,6 +13,7 @@ from client.comments.season import SeasonCommentsClient
 from client.comments.show import ShowCommentsClient
 from client.pool import get_client
 from config.api import DEFAULT_LIMIT, DEFAULT_MAX_PAGES
+from config.mcp.annotations import READ_ONLY
 from config.mcp.descriptions import (
     COMMENT_ID_DESCRIPTION,
     COMMENT_SORT_DESCRIPTION,
@@ -591,6 +592,7 @@ def register_comment_tools(
 
     @mcp.tool(
         name="fetch_movie_comments",
+        annotations=READ_ONLY,
         description=(
             "Fetch comments for a specific movie from Trakt. "
             "Supports optional pagination with 'page' parameter and "
@@ -619,6 +621,7 @@ def register_comment_tools(
 
     @mcp.tool(
         name="fetch_show_comments",
+        annotations=READ_ONLY,
         description=(
             "Fetch comments for a specific TV show from Trakt. "
             "Supports optional pagination with 'page' parameter and "
@@ -647,6 +650,7 @@ def register_comment_tools(
 
     @mcp.tool(
         name="fetch_season_comments",
+        annotations=READ_ONLY,
         description=(
             "Fetch comments for a specific TV show season from Trakt. "
             "Supports optional pagination with 'page' parameter and "
@@ -676,6 +680,7 @@ def register_comment_tools(
 
     @mcp.tool(
         name="fetch_episode_comments",
+        annotations=READ_ONLY,
         description=(
             "Fetch comments for a specific TV show episode from Trakt. "
             "Supports optional pagination with 'page' parameter and "
@@ -706,6 +711,7 @@ def register_comment_tools(
 
     @mcp.tool(
         name="fetch_comment",
+        annotations=READ_ONLY,
         description="Fetch a specific comment from Trakt",
     )
     async def fetch_comment_tool(
@@ -720,6 +726,7 @@ def register_comment_tools(
 
     @mcp.tool(
         name="fetch_comment_replies",
+        annotations=READ_ONLY,
         description=(
             "Fetch replies for a specific comment from Trakt. "
             "Supports optional pagination with 'page' parameter and "

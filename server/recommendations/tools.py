@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 from client.pool import get_client
 from client.recommendations import RecommendationsClient
 from config.api import DEFAULT_FETCH_ALL_LIMIT, DEFAULT_LIMIT
+from config.mcp.annotations import READ_ONLY, WRITE
 from config.mcp.descriptions import (
     GENRES_INCLUDE_DESCRIPTION,
     IGNORE_COLLECTED_DESCRIPTION,
@@ -323,6 +324,7 @@ def register_recommendation_tools(
 
     @mcp.tool(
         name="fetch_movie_recommendations",
+        annotations=READ_ONLY,
         description=(
             "Fetch personalized movie recommendations from Trakt based on your "
             "viewing history. Requires OAuth authentication. Use limit parameter "
@@ -363,6 +365,7 @@ def register_recommendation_tools(
 
     @mcp.tool(
         name="fetch_show_recommendations",
+        annotations=READ_ONLY,
         description=(
             "Fetch personalized TV show recommendations from Trakt based on your "
             "viewing history. Requires OAuth authentication. Use limit parameter "
@@ -388,6 +391,7 @@ def register_recommendation_tools(
 
     @mcp.tool(
         name="hide_movie_recommendation",
+        annotations=WRITE,
         description=(
             "Hide a movie from future recommendations. Requires OAuth authentication. "
             "Use Trakt ID, slug, or IMDB ID to identify the movie."
@@ -401,6 +405,7 @@ def register_recommendation_tools(
 
     @mcp.tool(
         name="hide_show_recommendation",
+        annotations=WRITE,
         description=(
             "Hide a TV show from future recommendations. "
             "Requires OAuth authentication. "
@@ -415,6 +420,7 @@ def register_recommendation_tools(
 
     @mcp.tool(
         name="unhide_movie_recommendation",
+        annotations=WRITE,
         description=(
             "Unhide a movie to restore it in future recommendations. "
             "Requires OAuth authentication. "
@@ -429,6 +435,7 @@ def register_recommendation_tools(
 
     @mcp.tool(
         name="unhide_show_recommendation",
+        annotations=WRITE,
         description=(
             "Unhide a TV show to restore it in future recommendations. "
             "Requires OAuth authentication. "

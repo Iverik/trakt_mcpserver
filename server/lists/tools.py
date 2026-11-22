@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 from client.lists.client import ListsClient
 from client.pool import get_client
 from client.validation import validate_media_id
+from config.mcp.annotations import DESTRUCTIVE, READ_ONLY, WRITE
 from config.mcp.descriptions import (
     LIST_DESCRIPTION_DESCRIPTION,
     LIST_ID_DESCRIPTION,
@@ -267,6 +268,7 @@ def register_lists_tools(
 
     @mcp.tool(
         name="fetch_user_lists",
+        annotations=READ_ONLY,
         description=(
             "Fetch the authenticated user's personal lists from Trakt. "
             "Requires OAuth authentication."
@@ -277,6 +279,7 @@ def register_lists_tools(
 
     @mcp.tool(
         name="create_user_list",
+        annotations=WRITE,
         description=(
             "Create a new personal list on Trakt. Lists are private unless "
             "privacy is set. Requires OAuth authentication."
@@ -295,6 +298,7 @@ def register_lists_tools(
 
     @mcp.tool(
         name="fetch_user_list_items",
+        annotations=READ_ONLY,
         description=(
             "Fetch all items on one of the authenticated user's personal lists, "
             "following every page. Requires OAuth authentication."
@@ -307,6 +311,7 @@ def register_lists_tools(
 
     @mcp.tool(
         name="add_user_list_items",
+        annotations=WRITE,
         description=(
             "Add movies or shows to one of the authenticated user's personal "
             "lists. Reports how many were added, already present or not found. "
@@ -327,6 +332,7 @@ def register_lists_tools(
 
     @mcp.tool(
         name="remove_user_list_items",
+        annotations=DESTRUCTIVE,
         description=(
             "Remove movies or shows from one of the authenticated user's "
             "personal lists. Reports how many were removed or not found. "

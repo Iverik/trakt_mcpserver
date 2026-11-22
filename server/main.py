@@ -9,7 +9,7 @@ from typing import Final
 from mcp.server.fastmcp import FastMCP
 
 from client.pool import shutdown_clients
-from config.transport import TRANSPORT_HTTP
+from config.transport import ENV_READ_ONLY, TRANSPORT_HTTP
 from utils.version import package_version
 
 # Import all module registration functions
@@ -23,6 +23,7 @@ from .movies import register_movie_resources, register_movie_tools
 from .people import register_people_tools
 from .progress import register_progress_tools
 from .prompts.basic import register_basic_prompts
+from .read_only import ReadOnlyFastMCP
 from .recommendations import register_recommendation_tools
 from .search import register_search_tools
 from .seasons import register_season_tools
@@ -80,6 +81,8 @@ async def idle_lifespan(_mcp: FastMCP) -> AsyncGenerator[None]:
 
 def create_server(
     lifespan: Callable[[FastMCP], AbstractAsyncContextManager[None]] = _lifespan,
+    *,
+    read_only: bool = False,
 ) -> FastMCP:
     """Create and configure the Trakt MCP server with all modules.
 
@@ -87,14 +90,25 @@ def create_server(
         lifespan: Context manager run around each server run. The default
             closes the shared HTTP clients on exit, which is only right when a
             run is the whole process (stdio).
+        read_only: Register only tools annotated read-only; the rest are left out
 
     Returns:
         Configured FastMCP server instance
     """
     logger.info("Starting trakt-mcp v%s", package_version())
-    mcp = FastMCP(name="trakt-mcp", lifespan=lifespan)
+    mcp = (
+        ReadOnlyFastMCP(name="trakt-mcp", lifespan=lifespan)
+        if read_only
+        else FastMCP(name="trakt-mcp", lifespan=lifespan)
+    )
     for register in REGISTRATIONS:
         register(mcp)
+    if isinstance(mcp, ReadOnlyFastMCP):
+        logger.info(
+            "Read-only mode (%s): skipped %d tools that are not read-only",
+            ENV_READ_ONLY,
+            len(mcp.skipped_tools),
+        )
     logger.info("All Trakt MCP modules registered successfully")
     return mcp
 
@@ -110,12 +124,14 @@ def run(argv: Sequence[str] | None = None) -> None:
     """
     settings = load_settings(argv)
     if settings.transport == TRANSPORT_HTTP:
-        http_server = create_server(lifespan=idle_lifespan)
+        http_server = create_server(
+            lifespan=idle_lifespan, read_only=settings.read_only
+        )
         serve(build_app(http_server, settings), settings)
         return
     # Print to stderr to avoid polluting stdout (required for stdio transport)
     print("Starting Trakt MCP server...", file=sys.stderr)
-    mcp.run()
+    (create_server(read_only=True) if settings.read_only else mcp).run()
 
 
 if __name__ == "__main__":

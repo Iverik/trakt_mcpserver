@@ -19,6 +19,7 @@ from config.api import (
     UNWATCHED_MAX_LIMIT,
 )
 from config.api.sync import RATING_MAX, RATING_MIN, RATINGS_SUMMARY_RECENT_COUNT
+from config.mcp.annotations import DESTRUCTIVE, READ_ONLY, WRITE
 from config.mcp.descriptions import (
     COLLECTION_INCLUDE_METADATA_DESCRIPTION,
     COLLECTION_TYPE_DESCRIPTION,
@@ -1356,6 +1357,7 @@ def register_sync_tools(
 
     @mcp.tool(
         name="fetch_user_ratings",
+        annotations=READ_ONLY,
         description=(
             "Fetch the authenticated user's personal ratings from Trakt. "
             "Supports optional pagination with 'page' parameter, and "
@@ -1412,6 +1414,7 @@ def register_sync_tools(
 
     @mcp.tool(
         name="add_user_ratings",
+        annotations=WRITE,
         description=(
             "Add new ratings for the authenticated user. Requires OAuth authentication."
         ),
@@ -1433,6 +1436,7 @@ def register_sync_tools(
 
     @mcp.tool(
         name="remove_user_ratings",
+        annotations=DESTRUCTIVE,
         description=(
             "Remove ratings for the authenticated user. Requires OAuth authentication."
         ),
@@ -1454,6 +1458,7 @@ def register_sync_tools(
 
     @mcp.tool(
         name="fetch_user_collection",
+        annotations=READ_ONLY,
         description=(
             "Fetch the authenticated user's entire movie or show collection "
             "from Trakt (all pages, no item cap). Shows list the number of "
@@ -1475,6 +1480,7 @@ def register_sync_tools(
 
     @mcp.tool(
         name="unwatched_in_collection",
+        annotations=READ_ONLY,
         description=(
             "List movies in the user's Trakt collection that they have not "
             "watched, in one call. Compares the whole collection with the "
@@ -1533,6 +1539,7 @@ def register_sync_tools(
 
     @mcp.tool(
         name="have_i_seen",
+        annotations=READ_ONLY,
         description=(
             "Check whether the user has watched specific movies, by Trakt "
             "movie ID. Per ID: watched or not, play count, last watched date "
@@ -1554,6 +1561,7 @@ def register_sync_tools(
 
     @mcp.tool(
         name="fetch_user_watchlist",
+        annotations=READ_ONLY,
         description=(
             "Fetch the authenticated user's watchlist from Trakt. "
             "Supports optional pagination with 'page' parameter and sorting options. "
@@ -1588,6 +1596,7 @@ def register_sync_tools(
 
     @mcp.tool(
         name="add_user_watchlist",
+        annotations=WRITE,
         description=(
             "Add items to the authenticated user's watchlist. "
             "Supports optional notes (VIP only, 500 character limit). "
@@ -1611,6 +1620,7 @@ def register_sync_tools(
 
     @mcp.tool(
         name="remove_user_watchlist",
+        annotations=DESTRUCTIVE,
         description=(
             "Remove items from the authenticated user's watchlist. "
             "Requires OAuth authentication."
@@ -1633,6 +1643,7 @@ def register_sync_tools(
 
     @mcp.tool(
         name="fetch_history",
+        annotations=READ_ONLY,
         description=(
             "Check if a movie or show has been watched, or browse watch history. "
             "For 'Have I seen [movie]?': provide history_type='movies' and item_id. "
@@ -1667,6 +1678,7 @@ def register_sync_tools(
 
     @mcp.tool(
         name="add_to_history",
+        annotations=WRITE,
         description=(
             "Add items to watch history. Marks movies, shows, seasons, or episodes "
             "as watched. Optionally specify when they were watched via "
@@ -1688,6 +1700,7 @@ def register_sync_tools(
 
     @mcp.tool(
         name="remove_from_history",
+        annotations=DESTRUCTIVE,
         description=(
             "Remove items from watch history. Removes movies, shows, seasons, "
             "or episodes from your watched history. "

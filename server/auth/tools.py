@@ -14,6 +14,7 @@ from config.auth import (
     DEVICE_TOKEN_SLOW_DOWN_STATUS,
     STALE_LOGIN_HINT,
 )
+from config.mcp.annotations import DESTRUCTIVE, WRITE
 from models.formatters.auth import AuthFormatters
 from server.base import ToolErrors
 from server.sync.cache import invalidate_all_caches
@@ -257,6 +258,7 @@ def register_auth_tools(mcp: FastMCP) -> tuple[Any, Any, Any]:
 
     @mcp.tool(
         name="start_device_auth",
+        annotations=WRITE,
         description="Start the device authentication flow with Trakt TV",
     )
     async def start_device_auth_tool() -> str:
@@ -264,6 +266,7 @@ def register_auth_tools(mcp: FastMCP) -> tuple[Any, Any, Any]:
 
     @mcp.tool(
         name="check_auth_status",
+        annotations=WRITE,
         description="Check the status of an ongoing device authentication flow",
     )
     async def check_auth_status_tool() -> str:
@@ -271,6 +274,7 @@ def register_auth_tools(mcp: FastMCP) -> tuple[Any, Any, Any]:
 
     @mcp.tool(
         name="clear_auth",
+        annotations=DESTRUCTIVE,
         description="Clear the authentication token and log out of Trakt",
     )
     async def clear_auth_tool() -> str:

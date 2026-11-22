@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from client.pool import get_client
 from client.progress.client import ProgressClient
+from config.mcp.annotations import DESTRUCTIVE, READ_ONLY
 from config.mcp.descriptions import (
     PLAYBACK_ID_DESCRIPTION,
     PLAYBACK_TYPE_DESCRIPTION,
@@ -159,6 +160,7 @@ def register_progress_tools(
 
     @mcp.tool(
         name="fetch_show_progress",
+        annotations=READ_ONLY,
         description=(
             "Check if a user has watched a specific TV show and their progress "
             "through it. "
@@ -195,6 +197,7 @@ def register_progress_tools(
 
     @mcp.tool(
         name="fetch_playback_progress",
+        annotations=READ_ONLY,
         description=(
             "Fetch paused playback progress items. Shows movies and episodes "
             "that were paused during playback with their progress percentage. "
@@ -211,6 +214,7 @@ def register_progress_tools(
 
     @mcp.tool(
         name="remove_playback_item",
+        annotations=DESTRUCTIVE,
         description=(
             "Remove a paused playback progress item. Use the ID from "
             "fetch_playback_progress results. Requires OAuth authentication."

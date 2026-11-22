@@ -19,6 +19,7 @@ from client.shows.related import RelatedShowsClient
 from client.shows.stats import ShowStatsClient
 from client.shows.trending import TrendingShowsClient
 from config.api import DEFAULT_LIMIT
+from config.mcp.annotations import READ_ONLY
 from config.mcp.descriptions import (
     EMBED_MARKDOWN_DESCRIPTION,
     EXTENDED_DESCRIPTION,
@@ -569,6 +570,7 @@ def register_show_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_trending_shows",
+        annotations=READ_ONLY,
         description=(
             "Fetch trending TV shows from Trakt. "
             "Use page parameter for paginated results, or omit for all results."
@@ -582,6 +584,7 @@ def register_show_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_popular_shows",
+        annotations=READ_ONLY,
         description=(
             "Fetch popular TV shows from Trakt. "
             "Use page parameter for paginated results, or omit for all results."
@@ -595,6 +598,7 @@ def register_show_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_favorited_shows",
+        annotations=READ_ONLY,
         description=(
             "Fetch most favorited TV shows from Trakt. "
             "Use page parameter for paginated results, or omit for all results."
@@ -612,6 +616,7 @@ def register_show_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_played_shows",
+        annotations=READ_ONLY,
         description=(
             "Fetch most played TV shows from Trakt. "
             "Use page parameter for paginated results, or omit for all results."
@@ -629,6 +634,7 @@ def register_show_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_watched_shows",
+        annotations=READ_ONLY,
         description=(
             "Fetch most watched TV shows from Trakt. "
             "Use page parameter for paginated results, or omit for all results."
@@ -646,6 +652,7 @@ def register_show_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_anticipated_shows",
+        annotations=READ_ONLY,
         description=(
             "Fetch most anticipated TV shows from Trakt, sorted by list count. "
             "Use page parameter for paginated results, or omit for all results."
@@ -659,6 +666,7 @@ def register_show_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_show_ratings",
+        annotations=READ_ONLY,
         description="Fetch ratings and voting statistics for a specific TV show",
     )
     async def fetch_show_ratings_tool(
@@ -670,6 +678,7 @@ def register_show_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_show_summary",
+        annotations=READ_ONLY,
         description=(
             "Get TV show summary from Trakt. "
             "Default behavior (extended=true): Returns comprehensive data including "
@@ -688,6 +697,7 @@ def register_show_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_show_videos",
+        annotations=READ_ONLY,
         description=(
             "Get videos (trailers, teasers, etc.) for a show from Trakt. "
             "Set embed_markdown=False to return simple links instead of "
@@ -708,6 +718,7 @@ def register_show_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_related_shows",
+        annotations=READ_ONLY,
         description=(
             "Fetch TV shows related to a specific show. Returns similar shows "
             "based on genres, themes, and viewer patterns. "
@@ -723,6 +734,7 @@ def register_show_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_show_seasons",
+        annotations=READ_ONLY,
         description=(
             "Fetch all seasons for a TV show from Trakt, including episode counts, "
             "aired episodes, and ratings per season."
@@ -735,6 +747,7 @@ def register_show_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_show_people",
+        annotations=READ_ONLY,
         description=(
             "Get cast and crew for a TV show from Trakt. "
             "Set include_guest_stars=true to also return guest stars "

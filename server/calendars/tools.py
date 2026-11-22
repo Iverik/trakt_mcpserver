@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field, field_validator
 from client.calendars import CalendarsClient
 from client.pool import get_client
 from config.api.calendars import CALENDAR_DEFAULT_DAYS, CALENDAR_MAX_DAYS
+from config.mcp.annotations import READ_ONLY
 from config.mcp.descriptions import (
     CALENDAR_DAYS_DESCRIPTION,
     CALENDAR_START_DATE_DESCRIPTION,
@@ -120,6 +121,7 @@ def register_calendar_tools(mcp: FastMCP) -> tuple[ToolHandler]:
 
     @mcp.tool(
         name="fetch_my_calendar",
+        annotations=READ_ONLY,
         description=(
             "Fetch your personal Trakt calendar: upcoming episodes or movie "
             "releases for items you watched, collected or watchlisted. Choose "

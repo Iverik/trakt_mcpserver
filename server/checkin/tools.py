@@ -9,6 +9,7 @@ from pydantic import Field
 
 from client.checkin.client import CheckinClient
 from client.pool import get_client
+from config.mcp.annotations import DESTRUCTIVE, WRITE
 from config.mcp.descriptions import (
     EPISODE_DESCRIPTION,
     MOVIE_ID_DESCRIPTION,
@@ -263,6 +264,7 @@ def register_checkin_tools(
 
     @mcp.tool(
         name="checkin_to_show",
+        annotations=WRITE,
         description="Check in to a TV show episode you're currently watching on Trakt",
     )
     async def checkin_to_show_tool(
@@ -345,6 +347,7 @@ def register_checkin_tools(
 
     @mcp.tool(
         name="checkin_to_movie",
+        annotations=WRITE,
         description="Check in to a movie you're currently watching on Trakt",
     )
     async def checkin_to_movie_tool(
@@ -423,6 +426,7 @@ def register_checkin_tools(
 
     @mcp.tool(
         name="cancel_checkin",
+        annotations=DESTRUCTIVE,
         description=(
             "Cancel your active Trakt check-in, whether it is a movie or an "
             "episode. Use it when you stopped watching or checked in by mistake"

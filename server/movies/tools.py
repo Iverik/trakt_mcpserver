@@ -20,6 +20,7 @@ from client.movies.stats import MovieStatsClient
 from client.movies.trending import TrendingMoviesClient
 from client.pool import get_client
 from config.api import DEFAULT_LIMIT
+from config.mcp.annotations import READ_ONLY
 from config.mcp.descriptions import (
     EMBED_MARKDOWN_DESCRIPTION,
     EXTENDED_DESCRIPTION,
@@ -557,6 +558,7 @@ def register_movie_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_trending_movies",
+        annotations=READ_ONLY,
         description=(
             "Fetch trending movies from Trakt. "
             "Use page parameter for paginated results, or omit for all results."
@@ -570,6 +572,7 @@ def register_movie_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_popular_movies",
+        annotations=READ_ONLY,
         description=(
             "Fetch popular movies from Trakt. "
             "Use page parameter for paginated results, or omit for all results."
@@ -583,6 +586,7 @@ def register_movie_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_favorited_movies",
+        annotations=READ_ONLY,
         description=(
             "Fetch most favorited movies from Trakt. "
             "Use page parameter for paginated results, or omit for all results."
@@ -600,6 +604,7 @@ def register_movie_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_played_movies",
+        annotations=READ_ONLY,
         description=(
             "Fetch most played movies from Trakt. "
             "Use page parameter for paginated results, or omit for all results."
@@ -617,6 +622,7 @@ def register_movie_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_watched_movies",
+        annotations=READ_ONLY,
         description=(
             "Fetch most watched movies from Trakt. "
             "Use page parameter for paginated results, or omit for all results."
@@ -634,6 +640,7 @@ def register_movie_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_anticipated_movies",
+        annotations=READ_ONLY,
         description=(
             "Fetch most anticipated movies from Trakt, sorted by list count. "
             "Use page parameter for paginated results, or omit for all results."
@@ -647,6 +654,7 @@ def register_movie_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_boxoffice_movies",
+        annotations=READ_ONLY,
         description=(
             "Fetch the top 10 grossing movies in the U.S. box office last weekend. "
             "Updated every Monday morning."
@@ -657,6 +665,7 @@ def register_movie_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_movie_ratings",
+        annotations=READ_ONLY,
         description="Fetch ratings and voting statistics for a specific movie",
     )
     async def fetch_movie_ratings_tool(
@@ -668,6 +677,7 @@ def register_movie_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_movie_summary",
+        annotations=READ_ONLY,
         description=(
             "Get movie summary from Trakt. "
             "Default behavior (extended=true): Returns comprehensive data including "
@@ -685,6 +695,7 @@ def register_movie_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_movie_videos",
+        annotations=READ_ONLY,
         description=(
             "Get videos (trailers, teasers, etc.) for a movie from Trakt. "
             "Set embed_markdown=False to return simple links instead of "
@@ -705,6 +716,7 @@ def register_movie_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_related_movies",
+        annotations=READ_ONLY,
         description=(
             "Fetch movies related to a specific movie. Returns similar movies "
             "based on genres, themes, and viewer patterns. "
@@ -720,6 +732,7 @@ def register_movie_tools(mcp: FastMCP) -> tuple[ToolHandler, ...]:
 
     @mcp.tool(
         name="fetch_movie_people",
+        annotations=READ_ONLY,
         description=(
             "Get cast and crew for a movie from Trakt. "
             "Returns cast with character names and crew "

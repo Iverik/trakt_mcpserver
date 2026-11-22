@@ -10,6 +10,7 @@ from client.pool import get_client
 from client.user.client import UserClient
 from config.api import effective_limit
 from config.auth import AUTH_VERIFICATION_URL
+from config.mcp.annotations import READ_ONLY
 from config.mcp.descriptions import USER_LIMIT_DESCRIPTION
 from models.formatters.user import UserFormatters
 from server.base import ToolErrors
@@ -184,6 +185,7 @@ def register_user_tools(
 
     @mcp.tool(
         name="fetch_user_watched_shows",
+        annotations=READ_ONLY,
         description=(
             "Fetch list of TV shows the user has watched, "
             "sorted by most recently watched. "
@@ -210,6 +212,7 @@ def register_user_tools(
 
     @mcp.tool(
         name="fetch_user_watched_movies",
+        annotations=READ_ONLY,
         description=(
             "Fetch list of movies the user has watched, "
             "sorted by most recently watched. "
@@ -236,6 +239,7 @@ def register_user_tools(
 
     @mcp.tool(
         name="fetch_user_stats",
+        annotations=READ_ONLY,
         description=(
             "Fetch the authenticated user's overall Trakt stats: movies, shows, "
             "episodes and seasons watched, collected and rated, hours watched, "
