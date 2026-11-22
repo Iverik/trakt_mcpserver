@@ -1,5 +1,6 @@
 """API configuration module."""
 
+from .calendars import CALENDAR_DEFAULT_DAYS, CALENDAR_MAX_DAYS
 from .constants import (
     DEFAULT_FETCH_ALL_LIMIT,
     DEFAULT_LIMIT,
@@ -11,6 +12,8 @@ from .constants import (
 )
 
 __all__ = [
+    "CALENDAR_DEFAULT_DAYS",
+    "CALENDAR_MAX_DAYS",
     "DEFAULT_FETCH_ALL_LIMIT",
     "DEFAULT_LIMIT",
     "DEFAULT_MAX_PAGES",

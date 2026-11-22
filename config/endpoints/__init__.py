@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Final
 
 from .auth import AUTH_ENDPOINTS
+from .calendars import CALENDARS_ENDPOINTS
 from .checkin import CHECKIN_ENDPOINTS
 from .comments import COMMENTS_ENDPOINTS
 from .episodes import EPISODES_ENDPOINTS
@@ -26,6 +27,7 @@ TRAKT_ENDPOINTS: Final[Mapping[EndpointKey, str]] = {
     **PROGRESS_ENDPOINTS,
     **RECOMMENDATIONS_ENDPOINTS,
     **SEARCH_ENDPOINTS,
+    **CALENDARS_ENDPOINTS,
     **CHECKIN_ENDPOINTS,
     **COMMENTS_ENDPOINTS,
     **EPISODES_ENDPOINTS,
@@ -36,6 +38,7 @@ TRAKT_ENDPOINTS: Final[Mapping[EndpointKey, str]] = {
 
 __all__ = [
     "AUTH_ENDPOINTS",
+    "CALENDARS_ENDPOINTS",
     "CHECKIN_ENDPOINTS",
     "COMMENTS_ENDPOINTS",
     "EPISODES_ENDPOINTS",

@@ -184,6 +184,11 @@ Add to your Claude Desktop MCP configuration file:
 - **Hide recommendations** you're not interested in so they don't come back
 - **Unhide** previously hidden items to restore them
 
+### 📅 Personal Calendar
+- **See what is airing or releasing for you**: episodes and movies from shows and movies you watched, collected or watchlisted (requires authentication)
+- Choose all shows, new shows, premieres, finales, or movies
+- Pick a start date and up to 33 days; times are shown in UTC
+
 ### 💬 Comments & Reviews
 - **View comments for shows and movies**: Read what others are saying about your favorite content
 - **See comments for specific seasons and episodes**: Get insights about particular parts of a show
@@ -628,6 +633,27 @@ unhide_movie_recommendation(movie_id="tron-legacy-2010")
 # Unhide a previously-hidden show
 unhide_show_recommendation(show_id="breaking-bad")
 ```
+
+</details>
+
+<details>
+<summary><strong>Calendar Tools</strong></summary>
+
+```python
+# Your upcoming episodes for the next 7 days (requires authentication)
+fetch_my_calendar(calendar_type="shows")
+
+# Season and series premieres for two weeks from a given date
+fetch_my_calendar(calendar_type="premieres", start_date="2026-11-22", days=14)
+
+# Other show calendars: "new_shows" (first-season shows) and "finales"
+fetch_my_calendar(calendar_type="finales", days=30)
+
+# Movie releases for items you track
+fetch_my_calendar(calendar_type="movies", start_date="2026-12-01", days=33)
+```
+
+`days` is capped at 33 (the Trakt maximum); larger values are reduced and the output says so. Dates and air times are UTC.
 
 </details>
 

@@ -86,6 +86,19 @@ class TestTraktEndpoints:
             assert isinstance(TRAKT_ENDPOINTS[endpoint], str)
             assert TRAKT_ENDPOINTS[endpoint].startswith("/")
 
+    def test_calendar_endpoints_exist(self) -> None:
+        """Test calendar endpoints are present and authenticated (my)."""
+        calendar_endpoints: list[EndpointKey] = [
+            "calendar_my_shows",
+            "calendar_my_new_shows",
+            "calendar_my_premieres",
+            "calendar_my_finales",
+            "calendar_my_movies",
+        ]
+        for endpoint in calendar_endpoints:
+            assert TRAKT_ENDPOINTS[endpoint].startswith("/calendars/my/")
+            assert TRAKT_ENDPOINTS[endpoint].endswith("/:start_date/:days")
+
     def test_recommendation_endpoints_exist(self) -> None:
         """Test recommendation endpoints are present."""
         recommendation_endpoints: list[EndpointKey] = [
@@ -171,6 +184,7 @@ class TestEndpointUrlFormats:
         """Test combined TRAKT_ENDPOINTS matches domain-specific endpoint modules."""
         # Import from domain-specific modules
         from config.endpoints.auth import AUTH_ENDPOINTS
+        from config.endpoints.calendars import CALENDARS_ENDPOINTS
         from config.endpoints.checkin import CHECKIN_ENDPOINTS
         from config.endpoints.comments import COMMENTS_ENDPOINTS
         from config.endpoints.episodes import EPISODES_ENDPOINTS
@@ -194,6 +208,7 @@ class TestEndpointUrlFormats:
             **COMMENTS_ENDPOINTS,
             **EPISODES_ENDPOINTS,
             **SEARCH_ENDPOINTS,
+            **CALENDARS_ENDPOINTS,
             **CHECKIN_ENDPOINTS,
             **USER_ENDPOINTS,
             **RECOMMENDATIONS_ENDPOINTS,

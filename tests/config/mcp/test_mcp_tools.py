@@ -2,6 +2,7 @@
 
 from config.mcp.tools import (
     AUTH_TOOLS,
+    CALENDAR_TOOLS,
     CHECKIN_TOOLS,
     COMMENT_TOOLS,
     EPISODE_TOOLS,
@@ -149,6 +150,7 @@ class TestToolNames:
             "PEOPLE_TOOLS": PEOPLE_TOOLS,
             "AUTH_TOOLS": AUTH_TOOLS,
             "USER_TOOLS": USER_TOOLS,
+            "CALENDAR_TOOLS": CALENDAR_TOOLS,
             "CHECKIN_TOOLS": CHECKIN_TOOLS,
             "COMMENT_TOOLS": COMMENT_TOOLS,
             "EPISODE_TOOLS": EPISODE_TOOLS,
@@ -172,6 +174,7 @@ class TestToolNames:
             | PEOPLE_TOOLS
             | AUTH_TOOLS
             | USER_TOOLS
+            | CALENDAR_TOOLS
             | CHECKIN_TOOLS
             | COMMENT_TOOLS
             | EPISODE_TOOLS

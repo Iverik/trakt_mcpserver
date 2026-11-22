@@ -3,6 +3,7 @@
 from typing import Final
 
 from .auth import AUTH_TOOLS
+from .calendars import CALENDAR_TOOLS
 from .checkin import CHECKIN_TOOLS
 from .comments import COMMENT_TOOLS
 from .episodes import EPISODE_TOOLS
@@ -22,6 +23,7 @@ TOOL_NAMES: Final[frozenset[str]] = (
     | PEOPLE_TOOLS
     | AUTH_TOOLS
     | USER_TOOLS
+    | CALENDAR_TOOLS
     | CHECKIN_TOOLS
     | COMMENT_TOOLS
     | EPISODE_TOOLS
@@ -34,6 +36,7 @@ TOOL_NAMES: Final[frozenset[str]] = (
 
 __all__ = [
     "AUTH_TOOLS",
+    "CALENDAR_TOOLS",
     "CHECKIN_TOOLS",
     "COMMENT_TOOLS",
     "EPISODE_TOOLS",

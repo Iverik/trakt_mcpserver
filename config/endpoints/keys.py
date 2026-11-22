@@ -12,6 +12,12 @@ EndpointKey = Literal[
     "device_token",
     "token",
     "revoke",
+    # Calendars
+    "calendar_my_shows",
+    "calendar_my_new_shows",
+    "calendar_my_premieres",
+    "calendar_my_finales",
+    "calendar_my_movies",
     # Checkin
     "checkin",
     # Comments

@@ -15,9 +15,13 @@ Naming Convention:
 
 from typing import Final
 
+from config.api.calendars import CALENDAR_DEFAULT_DAYS, CALENDAR_MAX_DAYS
 from config.api.constants import DEFAULT_FETCH_ALL_LIMIT, DEFAULT_LIMIT
 
 __all__: Final[list[str]] = [
+    "CALENDAR_DAYS_DESCRIPTION",
+    "CALENDAR_START_DATE_DESCRIPTION",
+    "CALENDAR_TYPE_DESCRIPTION",
     "COLLECTION_INCLUDE_METADATA_DESCRIPTION",
     "COLLECTION_TYPE_DESCRIPTION",
     "COMMENTS_LIMIT_DESCRIPTION",
@@ -309,4 +313,22 @@ LIST_TYPE_DESCRIPTION: Final[str] = (
 )
 LIST_SORT_DESCRIPTION: Final[str] = (
     "List sort: 'popular', 'likes', 'comments', 'items', 'added', 'updated'"
+)
+
+# Calendar descriptions
+CALENDAR_TYPE_DESCRIPTION: Final[str] = (
+    "Which of YOUR calendars to fetch (only items you watched, collected or "
+    "watchlisted): 'shows' (all upcoming episodes), 'new_shows' (episodes of "
+    "shows starting their first season), 'premieres' (season and series "
+    "premieres), 'finales' (season and series finales), or 'movies' (movie "
+    "releases)"
+)
+CALENDAR_START_DATE_DESCRIPTION: Final[str] = (
+    "First day of the calendar as YYYY-MM-DD in UTC (e.g., '2026-11-22'). "
+    "Defaults to today (UTC)"
+)
+CALENDAR_DAYS_DESCRIPTION: Final[str] = (
+    f"Number of days to cover, starting at start_date (default "
+    f"{CALENDAR_DEFAULT_DAYS}, max {CALENDAR_MAX_DAYS}; larger values are "
+    f"reduced to {CALENDAR_MAX_DAYS})"
 )

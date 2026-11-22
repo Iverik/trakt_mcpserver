@@ -13,6 +13,7 @@ from utils.version import package_version
 
 # Import all module registration functions
 from .auth import register_auth_resources, register_auth_tools
+from .calendars import register_calendar_tools
 from .checkin import register_checkin_tools
 from .comments import register_comment_tools
 from .episodes import register_episode_tools
@@ -44,6 +45,7 @@ REGISTRATIONS: Final[tuple[Callable[[FastMCP], object], ...]] = (
     register_user_resources,
     register_user_tools,
     register_search_tools,
+    register_calendar_tools,
     register_checkin_tools,
     register_sync_tools,
     register_progress_tools,
