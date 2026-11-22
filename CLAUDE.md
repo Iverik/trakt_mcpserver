@@ -28,6 +28,7 @@ server/           # MCP server modules by domain
 ├── comments/     # Comment tools
 ├── search/       # Search tools
 ├── checkin/      # Check-in tools
+├── transport/    # HTTP transport: Streamable HTTP + legacy SSE app, Origin guard, /healthz
 └── prompts/      # MCP prompts
 
 client/           # HTTP clients by domain
@@ -92,10 +93,10 @@ docker run -i --rm --name trakt_mcpserver_stdio \
   -e TRAKT_CLIENT_SECRET=your_client_secret \
   trakt_mcpserver:stdio
 
-# Build SSE image
+# Build HTTP image (Streamable HTTP on /mcp, legacy SSE on /sse)
 docker build -t trakt_mcpserver .
 
-# Run SSE container
+# Run HTTP container
 docker run -d --rm --name trakt_mcpserver \
   -e TRAKT_CLIENT_ID=your_client_id \
   -e TRAKT_CLIENT_SECRET=your_client_secret \

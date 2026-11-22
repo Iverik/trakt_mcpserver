@@ -16,6 +16,8 @@ import weakref
 from collections.abc import AsyncGenerator
 from typing import IO, Final
 
+from pydantic import ValidationError
+
 from models.auth import TraktAuthToken
 
 try:
@@ -27,6 +29,19 @@ logger = logging.getLogger(__name__)
 
 _LOCK_SUFFIX: Final[str] = ".lock"
 _FILE_MODE: Final[int] = 0o600
+
+
+def describe_load_error(error: BaseException) -> str:
+    """Name a token-file failure without echoing anything the file held.
+
+    A pydantic ValidationError carries the offending input (token prefixes
+    included) in its text, so only its type and the failing field locations
+    are reported.
+    """
+    if isinstance(error, ValidationError):
+        fields = [".".join(str(part) for part in e["loc"]) for e in error.errors()]
+        return f"{type(error).__name__} in fields {fields}"
+    return type(error).__name__
 
 
 class TokenStore:
@@ -61,6 +76,24 @@ class TokenStore:
             return
         self.token = on_disk
         self._last_seen_on_disk = on_disk
+
+    def probe(self) -> TraktAuthToken | None:
+        """Sync from disk like ``sync_from_disk``, but fail on an unreadable file.
+
+        For health checks, which must tell a store that cannot be read from one
+        that simply holds no token.
+
+        Returns:
+            The current token pair, or None when there is none
+
+        Raises:
+            OSError: The token file exists but cannot be read
+            ValueError: The token file exists but is not a valid token
+        """
+        if os.path.exists(self.path):
+            self._load()
+        self.sync_from_disk()
+        return self.token
 
     def save(self, token: TraktAuthToken) -> None:
         """Make ``token`` current and persist it.
@@ -123,14 +156,19 @@ class TokenStore:
             finally:
                 self._release_file_lock(lock_file)
 
+    def _load(self) -> TraktAuthToken:
+        with open(self.path, encoding="utf-8") as token_file:
+            return TraktAuthToken.model_validate(json.load(token_file))
+
     def _read(self) -> TraktAuthToken | None:
         try:
-            with open(self.path, encoding="utf-8") as token_file:
-                return TraktAuthToken.model_validate(json.load(token_file))
+            return self._load()
         except (OSError, ValueError) as error:
             # Checked on every tool call, so no traceback; clear_auth removes it.
             logger.warning(
-                "Ignoring unreadable auth token file %s: %s", self.path, error
+                "Ignoring unreadable auth token file %s: %s",
+                self.path,
+                describe_load_error(error),
             )
             return None
 

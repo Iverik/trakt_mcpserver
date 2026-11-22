@@ -890,13 +890,46 @@ You can log out at any time using the `clear_auth` tool.
 
 Access tokens last 7 days and refresh automatically. Refresh tokens are single-use. If a refresh fails with `invalid_grant` / `session not found` (for example, a token issued before Trakt's auth migration), run the device flow again once.
 
+## 🌐 Transports
+
+By default the server speaks MCP over stdio, which is what `uvx trakt-mcp`, `python server.py` and Claude Desktop use. To serve it over HTTP instead, pass `--transport http` or set `TRAKT_MCP_TRANSPORT=http`:
+
+```bash
+TRAKT_CLIENT_ID=your_client_id trakt-mcp --transport http --host 127.0.0.1 --port 8080
+```
+
+One app serves everything:
+
+| Path | Purpose |
+|------|---------|
+| `/mcp` | **Streamable HTTP** (MCP spec 2025-03-26 and later). Point clients at `https://<host>/mcp` |
+| `/sse` and `/messages/` | Legacy HTTP+SSE, **deprecated**: the spec replaced it with Streamable HTTP. Kept for one release; every connection logs a warning. Migrate clients to `/mcp` |
+| `/healthz` | Liveness check for Docker or a reverse proxy. Needs no MCP session or login and never calls Trakt |
+
+`/healthz` answers `200 {"status": "ok", "token": "present"}` (`"absent"` before the first login, `"expired"` once the access token has lapsed; neither is unhealthy, as logging in is a tool call). It answers `503 {"status": "error", "token": "unreadable"}` when the token file exists but cannot be read. It never returns token values.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TRAKT_MCP_TRANSPORT` | `stdio` | `stdio` or `http`. The `--transport` flag wins |
+| `TRAKT_MCP_HOST` | `127.0.0.1` | HTTP bind address. Use `0.0.0.0` in a container. The `--host` flag wins |
+| `TRAKT_MCP_PORT` | `8080` | HTTP port. The `--port` flag wins |
+| `TRAKT_MCP_ALLOWED_ORIGINS` | empty | Comma-separated browser origins allowed to call `/mcp` and `/sse`, for example `https://claude.ai`. Matching is exact, so list each scheme and host |
+| `TRAKT_MCP_ALLOWED_HOSTS` | empty | Comma-separated `Host` header values to accept, for example `trakt.example.com,trakt:8080`. `host:*` matches any port |
+| `TRAKT_MCP_STATELESS` | `false` | `true` keeps no per-client session, so a restart never invalidates one. The Docker image sets it |
+
+**Origin check.** A request with no `Origin` header is accepted: that is any non-browser client, such as a reverse proxy or an OAuth gateway calling server to server. A request that carries one must match `TRAKT_MCP_ALLOWED_ORIGINS`, otherwise it gets `403`. With the variable empty, every request that carries an Origin is rejected. If claude.ai connects through a gateway that forwards its `Origin`, set `TRAKT_MCP_ALLOWED_ORIGINS=https://claude.ai`.
+
+**Host check.** Bound to loopback with `TRAKT_MCP_ALLOWED_HOSTS` empty, only `127.0.0.1`, `localhost` and `[::1]` are accepted. Bound to any other address with it empty, the `Host` header is not checked, because the right value depends on the proxy in front. Behind a proxy that forwards `Host: trakt:8080`, set `TRAKT_MCP_ALLOWED_HOSTS=trakt:8080` to turn the check on. A rejected host gets `421`.
+
+The server has no login of its own: expose it only behind something that authenticates callers (an OAuth gateway or a private network).
+
 ## 🐳 Docker Deployment
 
 Two Docker images are available with different transport mechanisms. Each release also publishes a versioned tag (e.g. `:0.9.0`, `:0.9.0-stdio`) for pinning.
 
 | Image Tag | Transport | Use Case |
 |-----------|-----------|----------|
-| `:latest` | SSE (HTTP) | Remote access, web clients, docker-compose |
+| `:latest` | Streamable HTTP (`/mcp`), legacy SSE (`/sse`) | Remote access, web clients, docker-compose |
 | `:latest-stdio` | stdio | MCPhub, Claude Desktop, local MCP clients |
 | `:stdio` | stdio | **Deprecated alias for `:latest-stdio` — will be removed at v1.0.0** |
 
@@ -929,9 +962,9 @@ docker run -i --rm --name trakt_mcpserver_stdio \
 }
 ```
 
-### SSE Transport (HTTP/Remote)
+### HTTP Transport (Remote)
 
-Use the `:latest` image for HTTP-based access:
+Use the `:latest` image for HTTP-based access. Clients connect to `http://localhost:8080/mcp`; `/sse` still works but is deprecated (see [Transports](#-transports)). The image serves on `0.0.0.0:8080` and has a `HEALTHCHECK` on `/healthz`. To accept requests from a browser origin or a proxied `Host`, add `-e TRAKT_MCP_ALLOWED_ORIGINS=...` and `-e TRAKT_MCP_ALLOWED_HOSTS=...`.
 
 ```bash
 # Option 1: Pull and run from GHCR (recommended)
@@ -956,11 +989,11 @@ docker run -d --rm --name trakt_mcpserver \
 
 ```bash
 cp .env.example .env  # then set TRAKT_CLIENT_ID in .env
-# Builds the docker image using the default Dockerfile (SSE variant) and starts the service
+# Builds the docker image using the default Dockerfile (HTTP variant) and starts the service
 docker compose up
 ```
 
-This runs the server on `http://localhost:8080` and proxies MCP requests over SSE (HTTP transport).
+This runs the server on `http://localhost:8080`: Streamable HTTP on `/mcp` (legacy SSE on `/sse`).
 
 ## 🧪 Development & Testing
 

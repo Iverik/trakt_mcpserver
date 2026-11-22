@@ -1,0 +1,33 @@
+"""Transport configuration for the Trakt MCP server."""
+
+from .constants import (
+    DEFAULT_HOST,
+    DEFAULT_PORT,
+    ENV_ALLOWED_HOSTS,
+    ENV_ALLOWED_ORIGINS,
+    ENV_HOST,
+    ENV_PORT,
+    ENV_STATELESS,
+    ENV_TRANSPORT,
+    HEALTH_PATH,
+    LOOPBACK_ALLOWED_HOSTS,
+    LOOPBACK_HOSTS,
+    TRANSPORT_HTTP,
+    TRANSPORT_STDIO,
+)
+
+__all__ = [
+    "DEFAULT_HOST",
+    "DEFAULT_PORT",
+    "ENV_ALLOWED_HOSTS",
+    "ENV_ALLOWED_ORIGINS",
+    "ENV_HOST",
+    "ENV_PORT",
+    "ENV_STATELESS",
+    "ENV_TRANSPORT",
+    "HEALTH_PATH",
+    "LOOPBACK_ALLOWED_HOSTS",
+    "LOOPBACK_HOSTS",
+    "TRANSPORT_HTTP",
+    "TRANSPORT_STDIO",
+]

@@ -2,13 +2,14 @@
 
 import logging
 import sys
-from collections.abc import AsyncGenerator, Callable
-from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator, Callable, Sequence
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import Final
 
 from mcp.server.fastmcp import FastMCP
 
 from client.pool import shutdown_clients
+from config.transport import TRANSPORT_HTTP
 from utils.version import package_version
 
 # Import all module registration functions
@@ -26,6 +27,9 @@ from .search import register_search_tools
 from .seasons import register_season_tools
 from .shows import register_show_resources, register_show_tools
 from .sync import register_sync_tools
+from .transport.app import build_app
+from .transport.serve import serve
+from .transport.settings import load_settings
 from .user import register_user_resources, register_user_tools
 
 # Set up logging
@@ -66,14 +70,27 @@ async def _lifespan(_mcp: FastMCP) -> AsyncGenerator[None]:
         await shutdown_clients()
 
 
-def create_server() -> FastMCP:
+@asynccontextmanager
+async def idle_lifespan(_mcp: FastMCP) -> AsyncGenerator[None]:
+    """Do nothing: over HTTP the lifespan runs per session, not per process."""
+    yield
+
+
+def create_server(
+    lifespan: Callable[[FastMCP], AbstractAsyncContextManager[None]] = _lifespan,
+) -> FastMCP:
     """Create and configure the Trakt MCP server with all modules.
+
+    Args:
+        lifespan: Context manager run around each server run. The default
+            closes the shared HTTP clients on exit, which is only right when a
+            run is the whole process (stdio).
 
     Returns:
         Configured FastMCP server instance
     """
     logger.info("Starting trakt-mcp v%s", package_version())
-    mcp = FastMCP(name="trakt-mcp", lifespan=_lifespan)
+    mcp = FastMCP(name="trakt-mcp", lifespan=lifespan)
     for register in REGISTRATIONS:
         register(mcp)
     logger.info("All Trakt MCP modules registered successfully")
@@ -84,8 +101,16 @@ def create_server() -> FastMCP:
 mcp = create_server()
 
 
-def run() -> None:
-    """Console-script entry point (used by `[project.scripts]` and uvx)."""
+def run(argv: Sequence[str] | None = None) -> None:
+    """Console-script entry point (used by `[project.scripts]` and uvx).
+
+    Serves over stdio unless ``--transport http`` or TRAKT_MCP_TRANSPORT=http.
+    """
+    settings = load_settings(argv)
+    if settings.transport == TRANSPORT_HTTP:
+        http_server = create_server(lifespan=idle_lifespan)
+        serve(build_app(http_server, settings), settings)
+        return
     # Print to stderr to avoid polluting stdout (required for stdio transport)
     print("Starting Trakt MCP server...", file=sys.stderr)
     mcp.run()
