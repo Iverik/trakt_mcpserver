@@ -2,15 +2,17 @@
 
 import logging
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 from typing import Annotated, Any, ClassVar, Literal
 
 from mcp.server.fastmcp import FastMCP
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from client.pool import get_client
 from client.shows.seasons import ShowSeasonsClient
 from client.sync.client import SyncClient
 from config.api import DEFAULT_LIMIT
+from config.api.sync import RATING_MAX, RATING_MIN, RATINGS_SUMMARY_RECENT_COUNT
 from config.mcp.descriptions import (
     COLLECTION_INCLUDE_METADATA_DESCRIPTION,
     COLLECTION_TYPE_DESCRIPTION,
@@ -21,11 +23,16 @@ from config.mcp.descriptions import (
     HISTORY_REMOVE_ITEMS_DESCRIPTION,
     HISTORY_START_AT_DESCRIPTION,
     HISTORY_TYPE_DESCRIPTION,
+    MAX_RATING_DESCRIPTION,
+    MIN_RATING_DESCRIPTION,
     PAGE_DESCRIPTION,
+    RATED_AFTER_DESCRIPTION,
     RATING_FILTER_DESCRIPTION,
     RATING_ITEMS_DESCRIPTION,
     RATING_REMOVE_ITEMS_DESCRIPTION,
     RATING_TYPE_DESCRIPTION,
+    RATINGS_LIMIT_DESCRIPTION,
+    RATINGS_SUMMARY_DESCRIPTION,
     SORT_DIRECTION_DESCRIPTION,
     WATCHLIST_ITEMS_DESCRIPTION,
     WATCHLIST_REMOVE_ITEMS_DESCRIPTION,
@@ -45,6 +52,7 @@ from models.sync.history import (
     TraktHistoryRequest,
 )
 from models.sync.ratings import (
+    TraktSyncRating,
     TraktSyncRatingItem,
     TraktSyncRatingsRequest,
 )
@@ -53,7 +61,11 @@ from models.sync.watchlist import (
     TraktSyncWatchlistRequest,
 )
 from models.types.ids import TraktIds
-from models.types.pagination import PaginationParams
+from models.types.pagination import (
+    PaginatedResponse,
+    PaginationMetadata,
+    PaginationParams,
+)
 from models.types.timestamps import WatchedAtValue
 from server.base import IdentifierValidatorMixin, ToolErrors
 from utils.api.errors import InvalidParamsError, MCPError, handle_api_errors_func
@@ -287,25 +299,95 @@ class UserRatingsParams(BaseModel):
 
     rating_type: Literal["movies", "shows", "seasons", "episodes"] = "movies"
     rating: int | None = Field(
-        default=None, ge=1, le=10, description="Optional specific rating to filter by"
+        default=None,
+        ge=RATING_MIN,
+        le=RATING_MAX,
+        description="Optional specific rating to filter by",
     )
     page: int | None = Field(
         default=None, ge=1, description="Optional page number for pagination (1-based)"
     )
+    min_rating: int | None = Field(
+        default=None, ge=RATING_MIN, le=RATING_MAX, description="Minimum rating"
+    )
+    max_rating: int | None = Field(
+        default=None, ge=RATING_MIN, le=RATING_MAX, description="Maximum rating"
+    )
+    rated_after: datetime | None = Field(
+        default=None, description="Only ratings made on or after this instant (UTC)"
+    )
+    limit: int | None = Field(default=None, ge=1, description="Maximum ratings")
+    summary: bool = False
 
-    @field_validator("rating", mode="before")
+    @field_validator(
+        "rating", "page", "min_rating", "max_rating", "limit", mode="before"
+    )
     @classmethod
-    def _validate_rating(cls, v: object) -> object:
+    def _blank_to_none(cls, v: object) -> object:
         if v is None or v == "":
             return None
         return v
 
-    @field_validator("page", mode="before")
+    @field_validator("rated_after", mode="before")
     @classmethod
-    def _validate_page(cls, v: object) -> object:
+    def _parse_rated_after(cls, v: object) -> object:
+        """Accept an ISO 8601 date or datetime; a missing zone means UTC."""
         if v is None or v == "":
             return None
-        return v
+        if isinstance(v, str):
+            try:
+                parsed = datetime.fromisoformat(v)
+            except ValueError as e:
+                raise ValueError(
+                    f"rated_after must be an ISO 8601 date or datetime, got {v!r}"
+                ) from e
+        elif isinstance(v, datetime):
+            parsed = v
+        else:
+            raise ValueError("rated_after must be an ISO 8601 date or datetime string")
+        return parsed.replace(tzinfo=UTC) if parsed.tzinfo is None else parsed
+
+    @model_validator(mode="after")
+    def _validate_combinations(self) -> "UserRatingsParams":
+        if (
+            self.min_rating is not None
+            and self.max_rating is not None
+            and self.min_rating > self.max_rating
+        ):
+            raise ValueError(
+                f"min_rating ({self.min_rating}) must not exceed "
+                + f"max_rating ({self.max_rating})"
+            )
+        if self.rating is not None and (
+            self.min_rating is not None or self.max_rating is not None
+        ):
+            raise ValueError("rating cannot be combined with min_rating or max_rating")
+        if self.page is not None and self.uses_client_side_view:
+            raise ValueError(
+                "page cannot be combined with min_rating, max_rating, "
+                + "rated_after, limit or summary"
+            )
+        return self
+
+    @property
+    def uses_client_side_view(self) -> bool:
+        """True when any filter, limit or summary asks for the full-set view."""
+        return (
+            self.min_rating is not None
+            or self.max_rating is not None
+            or self.rated_after is not None
+            or self.limit is not None
+            or self.summary
+        )
+
+    @property
+    def exact_rating(self) -> int | None:
+        """The single rating value to filter by, if the inputs pin one."""
+        if self.rating is not None:
+            return self.rating
+        if self.min_rating is not None and self.min_rating == self.max_rating:
+            return self.min_rating
+        return None
 
 
 class UserRatingRequestItem(IdentifierValidatorMixin):
@@ -382,11 +464,32 @@ class UserWatchlistRequest(BaseModel):
     )
 
 
+def _select_ratings(
+    ratings: list[TraktSyncRating], params: UserRatingsParams
+) -> list[TraktSyncRating]:
+    """Apply rating-range and date filters, newest rated first."""
+    low = params.min_rating if params.min_rating is not None else RATING_MIN
+    high = params.max_rating if params.max_rating is not None else RATING_MAX
+    selected = [
+        r
+        for r in ratings
+        if low <= r.rating <= high
+        and (params.rated_after is None or r.rated_at >= params.rated_after)
+    ]
+    selected.sort(key=lambda r: r.rated_at, reverse=True)
+    return selected
+
+
 @handle_api_errors_func
 async def fetch_user_ratings(
     rating_type: Literal["movies", "shows", "seasons", "episodes"] = "movies",
     rating: int | None = None,
     page: int | None = None,
+    min_rating: int | None = None,
+    max_rating: int | None = None,
+    rated_after: str | None = None,
+    limit: int | None = None,
+    summary: bool = False,
 ) -> str:
     """Fetch authenticated user's personal ratings from Trakt.
 
@@ -394,21 +497,40 @@ async def fetch_user_ratings(
         rating_type: Type of ratings to fetch (movies, shows, seasons, episodes)
         rating: Optional specific rating to filter by (1-10)
         page: Optional page number for pagination (1-based)
+        min_rating: Only ratings of at least this value (1-10)
+        max_rating: Only ratings of at most this value (1-10)
+        rated_after: Only ratings made on or after this ISO 8601 date or datetime
+        limit: Maximum number of ratings to return, most recently rated first
+        summary: Return counts per rating value and the most recent ratings
 
     Returns:
         User's personal ratings formatted as markdown. When 'page' is None,
         only the first page is retrieved (see pagination info in the output).
+        With any of min_rating, max_rating, rated_after, limit or summary, every
+        page is fetched and the filters, limit and counts apply to the full set.
 
     Raises:
         AuthenticationRequiredError: If user is not authenticated
     """
     logger.debug("fetch_user_ratings called with rating_type=%s", rating_type)
     # Validate parameters with Pydantic
-    params = UserRatingsParams(rating_type=rating_type, rating=rating, page=page)
+    params = UserRatingsParams(
+        rating_type=rating_type,
+        rating=rating,
+        page=page,
+        min_rating=min_rating,
+        max_rating=max_rating,
+        rated_after=rated_after,  # pyright: ignore[reportArgumentType]
+        limit=limit,
+        summary=summary,
+    )
     rating_type, rating, page = params.rating_type, params.rating, params.page
 
     try:
         client = get_client(SyncClient)
+
+        if params.uses_client_side_view:
+            return await _fetch_ratings_view(client, params)
 
         # If 'page' is provided, request that page; otherwise use default page=1.
         pagination_params = (
@@ -432,6 +554,48 @@ async def fetch_user_ratings(
         )
     except MCPError:
         raise
+
+
+async def _fetch_ratings_view(client: SyncClient, params: UserRatingsParams) -> str:
+    """Fetch every rating, then filter, truncate or summarize over the full set."""
+    rating_type = params.rating_type
+    all_ratings = _unwrap_or_raise(
+        # Use the API's single-rating path filter when the inputs pin one value;
+        # any range is filtered client-side below.
+        await client.get_all_sync_ratings(rating_type, params.exact_rating),
+        resource_type=f"user_{rating_type}_ratings",
+        resource_id=f"user_ratings_{rating_type}",
+        operation="fetch_user_ratings",
+    )
+    selected = _select_ratings(all_ratings, params)
+
+    if params.summary:
+        counts = dict.fromkeys(range(RATING_MAX, RATING_MIN - 1, -1), 0)
+        for item in selected:
+            counts[item.rating] += 1
+        recent_count = min(
+            params.limit or RATINGS_SUMMARY_RECENT_COUNT, RATINGS_SUMMARY_RECENT_COUNT
+        )
+        return SyncRatingsFormatters.format_ratings_overview(
+            counts, selected[:recent_count], rating_type
+        )
+
+    shown = selected[: params.limit] if params.limit else selected
+    if not shown:
+        return SyncRatingsFormatters.format_ratings_overview({}, [], rating_type)
+    return SyncRatingsFormatters.format_user_ratings(
+        PaginatedResponse[TraktSyncRating](
+            data=shown,
+            pagination=PaginationMetadata(
+                current_page=1,
+                items_per_page=len(shown),
+                total_pages=1,
+                total_items=len(shown),
+            ),
+        ),
+        rating_type,
+        params.exact_rating,
+    )
 
 
 @handle_api_errors_func
@@ -1009,7 +1173,9 @@ def register_sync_tools(
         name="fetch_user_ratings",
         description=(
             "Fetch the authenticated user's personal ratings from Trakt. "
-            "Supports optional pagination with 'page' parameter. "
+            "Supports optional pagination with 'page' parameter, and "
+            "'min_rating', 'max_rating', 'rated_after' and 'limit' filters. "
+            "Set 'summary' for counts per rating plus the most recent ratings. "
             "Requires OAuth authentication."
         ),
     )
@@ -1026,10 +1192,37 @@ def register_sync_tools(
             int | None,
             Field(ge=1, description=PAGE_DESCRIPTION),
         ] = None,
+        min_rating: Annotated[
+            int | None,
+            Field(ge=RATING_MIN, le=RATING_MAX, description=MIN_RATING_DESCRIPTION),
+        ] = None,
+        max_rating: Annotated[
+            int | None,
+            Field(ge=RATING_MIN, le=RATING_MAX, description=MAX_RATING_DESCRIPTION),
+        ] = None,
+        rated_after: Annotated[
+            str | None,
+            Field(description=RATED_AFTER_DESCRIPTION),
+        ] = None,
+        limit: Annotated[
+            int | None,
+            Field(ge=1, description=RATINGS_LIMIT_DESCRIPTION),
+        ] = None,
+        summary: Annotated[
+            bool,
+            Field(description=RATINGS_SUMMARY_DESCRIPTION),
+        ] = False,
     ) -> str:
-        # Validate parameters with Pydantic
-        params = UserRatingsParams(rating_type=rating_type, rating=rating, page=page)
-        return await fetch_user_ratings(params.rating_type, params.rating, params.page)
+        return await fetch_user_ratings(
+            rating_type,
+            rating,
+            page,
+            min_rating,
+            max_rating,
+            rated_after,
+            limit,
+            summary,
+        )
 
     @mcp.tool(
         name="add_user_ratings",

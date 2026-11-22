@@ -207,6 +207,45 @@ class TestSyncRatingsClient:
             assert "/sync/ratings/shows/10" in args[0]
 
     @pytest.mark.asyncio
+    async def test_get_all_sync_ratings_follows_every_page(
+        self, authenticated_client: SyncRatingsClient
+    ) -> None:
+        """get_all_sync_ratings walks all pages instead of truncating."""
+
+        def page(
+            number: int, items: list[TraktSyncRating]
+        ) -> PaginatedResponse[TraktSyncRating]:
+            return PaginatedResponse[TraktSyncRating](
+                data=items,
+                pagination=PaginationMetadata(
+                    current_page=number, items_per_page=2, total_pages=2, total_items=3
+                ),
+            )
+
+        responses = [
+            page(
+                1,
+                [
+                    create_movie_rating("A", 2000, "1", 10),
+                    create_movie_rating("B", 2001, "2", 9),
+                ],
+            ),
+            page(2, [create_movie_rating("C", 2002, "3", 8)]),
+        ]
+        with patch.object(
+            authenticated_client, "_make_paginated_request", side_effect=responses
+        ) as mock_request:
+            result = await authenticated_client.get_all_sync_ratings("movies", 8)
+            assert not isinstance(result, str)
+
+        assert [r.movie.title for r in result if r.movie] == ["A", "B", "C"]
+        assert mock_request.call_count == 2
+        args, kwargs = mock_request.call_args_list[0]
+        assert "/sync/ratings/movies/8" in args[0]
+        assert kwargs["params"]["limit"] == 100
+        assert mock_request.call_args_list[1].kwargs["params"]["page"] == 2
+
+    @pytest.mark.asyncio
     async def test_add_sync_ratings_success(
         self, authenticated_client: SyncRatingsClient
     ) -> None:

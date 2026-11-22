@@ -2,6 +2,7 @@
 
 from typing import TYPE_CHECKING, Literal
 
+from config.api import MAX_API_PAGE_SIZE
 from config.endpoints.sync import SYNC_ENDPOINTS
 from models.sync.ratings import (
     SyncRatingsSummary,
@@ -20,6 +21,20 @@ if TYPE_CHECKING:
 
 class SyncRatingsClient(AuthClient):
     """Client for sync ratings operations."""
+
+    @staticmethod
+    def _ratings_endpoint(
+        rating_type: Literal["movies", "shows", "seasons", "episodes"],
+        rating: int | None,
+    ) -> str:
+        """Build the ratings endpoint, using the rating path filter if given."""
+        if rating is not None:
+            return (
+                SYNC_ENDPOINTS["sync_ratings_get"]
+                .replace(":type", rating_type)
+                .replace(":rating", str(rating))
+            )
+        return SYNC_ENDPOINTS["sync_ratings_get_type"].replace(":type", rating_type)
 
     @handle_api_errors
     async def get_sync_ratings(
@@ -44,17 +59,7 @@ class SyncRatingsClient(AuthClient):
         if not await self.ensure_authenticated():
             raise AuthenticationRequiredError(action="access your personal ratings")
 
-        # Build the endpoint URL
-        if rating is not None:
-            endpoint = (
-                SYNC_ENDPOINTS["sync_ratings_get"]
-                .replace(":type", rating_type)
-                .replace(":rating", str(rating))
-            )
-        else:
-            endpoint = SYNC_ENDPOINTS["sync_ratings_get_type"].replace(
-                ":type", rating_type
-            )
+        endpoint = self._ratings_endpoint(rating_type, rating)
 
         # Build query parameters with pagination
         params: dict[str, int] = {}
@@ -63,6 +68,36 @@ class SyncRatingsClient(AuthClient):
 
         return await self._make_paginated_request(
             endpoint, response_type=TraktSyncRating, params=params
+        )
+
+    @handle_api_errors
+    async def get_all_sync_ratings(
+        self,
+        rating_type: Literal["movies", "shows", "seasons", "episodes"],
+        rating: int | None = None,
+    ) -> list[TraktSyncRating]:
+        """Get every rating of a type, following pagination to the last page.
+
+        Unlike get_sync_ratings, this is never truncated, so callers can
+        filter and count over the full set.
+
+        Args:
+            rating_type: Type of ratings to get (movies, shows, seasons, episodes)
+            rating: Optional specific rating to filter by (1-10)
+
+        Returns:
+            All of the user's ratings of that type
+
+        Raises:
+            AuthenticationRequiredError: If not authenticated
+        """
+        if not await self.ensure_authenticated():
+            raise AuthenticationRequiredError(action="access your personal ratings")
+
+        return await self.auto_paginate(
+            self._ratings_endpoint(rating_type, rating),
+            response_type=TraktSyncRating,
+            params={"limit": MAX_API_PAGE_SIZE},
         )
 
     @handle_api_errors

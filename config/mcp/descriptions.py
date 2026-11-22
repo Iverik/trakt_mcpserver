@@ -41,12 +41,17 @@ __all__: Final[list[str]] = [
     "LIST_SORT_DESCRIPTION",
     "LIST_TYPE_DESCRIPTION",
     "MAX_PAGES_DESCRIPTION",
+    "MAX_RATING_DESCRIPTION",
+    "MIN_RATING_DESCRIPTION",
     "MOVIE_ID_DESCRIPTION",
     "PAGE_DESCRIPTION",
     "PERIOD_DESCRIPTION",
     "PERSON_ID_DESCRIPTION",
     "PLAYBACK_ID_DESCRIPTION",
     "PLAYBACK_TYPE_DESCRIPTION",
+    "RATED_AFTER_DESCRIPTION",
+    "RATINGS_LIMIT_DESCRIPTION",
+    "RATINGS_SUMMARY_DESCRIPTION",
     "RATING_FILTER_DESCRIPTION",
     "RATING_ITEMS_DESCRIPTION",
     "RATING_REMOVE_ITEMS_DESCRIPTION",
@@ -191,6 +196,22 @@ WATCHLIST_TYPE_REQUIRED_DESCRIPTION: Final[str] = (
 
 # Rating-specific descriptions
 RATING_FILTER_DESCRIPTION: Final[str] = "Filter by specific rating (1-10)"
+MIN_RATING_DESCRIPTION: Final[str] = (
+    "Only include ratings of at least this value (1-10)"
+)
+MAX_RATING_DESCRIPTION: Final[str] = "Only ratings of at most this value (1-10)"
+RATED_AFTER_DESCRIPTION: Final[str] = (
+    "Only include ratings made on or after this date "
+    "(ISO 8601 date or datetime, e.g., '2024-01-01' or '2024-01-01T00:00:00Z'; "
+    "no timezone means UTC)"
+)
+RATINGS_LIMIT_DESCRIPTION: Final[str] = (
+    "Maximum number of ratings to return, most recently rated first"
+)
+RATINGS_SUMMARY_DESCRIPTION: Final[str] = (
+    "Return counts per rating value (10 down to 1) and the 20 most recent "
+    "ratings instead of the full list"
+)
 
 # Items list descriptions
 RATING_ITEMS_DESCRIPTION: Final[str] = (

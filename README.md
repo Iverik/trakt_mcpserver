@@ -154,7 +154,7 @@ Add to your Claude Desktop MCP configuration file:
   - Include custom messages with your check-ins
   - See when you watched the episode in human-readable format
 - **Search for shows** to find their details and IDs
-- **Manage your ratings**: View, add, and remove personal ratings for movies, shows, seasons, and episodes with pagination support
+- **Manage your ratings**: View, add, and remove personal ratings for movies, shows, seasons, and episodes with pagination support, rating-range and date filters, and a summary mode (counts per rating plus the 20 most recent)
 - **Manage your watchlist**: View, add, and remove items from your watchlist with pagination and sorting support
   - Filter by type (all, movies, shows, seasons, episodes)
   - Sort by multiple criteria (rank, added, title, released, runtime, popularity, percentage, votes)
@@ -511,6 +511,12 @@ fetch_user_watched_movies(limit=0)  # 0 for all movies
 
 # Fetch user's personal ratings with pagination support
 fetch_user_ratings(rating_type="movies", rating=10, page=1)
+
+# Filter by rating range and date, newest first (fetches every page, then filters)
+fetch_user_ratings(rating_type="movies", min_rating=8, rated_after="2024-01-01", limit=25)
+
+# Counts per rating value (10 down to 1) plus the 20 most recent ratings
+fetch_user_ratings(rating_type="movies", summary=True)
 
 # Add new ratings for movies, shows, seasons, or episodes
 add_user_ratings(rating_type="movies", items=[{"trakt_id": "314", "rating": 9}])

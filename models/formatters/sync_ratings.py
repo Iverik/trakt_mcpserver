@@ -8,6 +8,73 @@ class SyncRatingsFormatters:
     """Helper class for formatting sync ratings data for MCP responses."""
 
     @staticmethod
+    def _describe_item(rating_item: TraktSyncRating) -> tuple[str, str]:
+        """Build the display title and " (year)" suffix for a rated item."""
+        title = "Unknown"
+        year = ""
+
+        if rating_item.movie:
+            title = rating_item.movie.title
+            year = f" ({rating_item.movie.year})" if rating_item.movie.year else ""
+        elif rating_item.episode and rating_item.show:
+            season = rating_item.episode.season
+            episode = rating_item.episode.number
+            episode_title = rating_item.episode.title
+            title = f"{rating_item.show.title} - S{season:02d}E{episode:02d}"
+            if episode_title:
+                title += f": {episode_title}"
+            year = f" ({rating_item.show.year})" if rating_item.show.year else ""
+        elif rating_item.season and rating_item.show:
+            title = f"{rating_item.show.title} - Season {rating_item.season.number}"
+            year = f" ({rating_item.show.year})" if rating_item.show.year else ""
+        elif rating_item.show:
+            title = rating_item.show.title
+            year = f" ({rating_item.show.year})" if rating_item.show.year else ""
+
+        return title, year
+
+    @staticmethod
+    def format_ratings_overview(
+        counts: dict[int, int],
+        recent: list[TraktSyncRating],
+        rating_type: str,
+    ) -> str:
+        """Format a compact overview: counts per rating plus recent ratings.
+
+        Args:
+            counts: Number of ratings per rating value (1-10), over the full set
+            recent: Most recently rated items, newest first
+            rating_type: Type of content (movies, shows, seasons, episodes)
+
+        Returns:
+            Formatted markdown text with the distribution and recent ratings
+        """
+        total = sum(counts.values())
+        lines: list[str] = [f"# Your {rating_type.title()} Ratings Summary", ""]
+
+        if total == 0:
+            lines.append(f"No {rating_type} ratings found.")
+            return "\n".join(lines)
+
+        lines.append(f"Total rated: **{total}**")
+        lines.append("")
+        lines.append("## Ratings by value")
+        lines.append("")
+        lines.extend(
+            f"- {score}/10: {counts[score]}" for score in sorted(counts, reverse=True)
+        )
+        lines.append("")
+        lines.append(f"## Most recent ratings ({len(recent)})")
+        lines.append("")
+        for rating_item in recent:
+            title, year = SyncRatingsFormatters._describe_item(rating_item)
+            rated_date = rating_item.rated_at.strftime("%Y-%m-%d")
+            lines.append(
+                f"- **{title}{year}**: {rating_item.rating}/10 (rated {rated_date})"
+            )
+        return "\n".join(lines)
+
+    @staticmethod
     def format_user_ratings(
         paginated_ratings: PaginatedResponse[TraktSyncRating],
         rating_type: str,
@@ -95,36 +162,7 @@ class SyncRatingsFormatters:
             lines.append("")
 
             for rating_item in rated_items:
-                title = "Unknown"
-                year = ""
-
-                if rating_item.movie:
-                    title = rating_item.movie.title
-                    year = (
-                        f" ({rating_item.movie.year})" if rating_item.movie.year else ""
-                    )
-                elif rating_item.episode and rating_item.show:
-                    season = rating_item.episode.season
-                    episode = rating_item.episode.number
-                    episode_title = rating_item.episode.title
-                    title = f"{rating_item.show.title} - S{season:02d}E{episode:02d}"
-                    if episode_title:
-                        title += f": {episode_title}"
-                    year = (
-                        f" ({rating_item.show.year})" if rating_item.show.year else ""
-                    )
-                elif rating_item.season and rating_item.show:
-                    title = (
-                        f"{rating_item.show.title} - Season {rating_item.season.number}"
-                    )
-                    year = (
-                        f" ({rating_item.show.year})" if rating_item.show.year else ""
-                    )
-                elif rating_item.show:
-                    title = rating_item.show.title
-                    year = (
-                        f" ({rating_item.show.year})" if rating_item.show.year else ""
-                    )
+                title, year = SyncRatingsFormatters._describe_item(rating_item)
 
                 # Format rating date (show just the date part)
                 rating_date = (
