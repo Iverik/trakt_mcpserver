@@ -153,6 +153,9 @@ Add to your Claude Desktop MCP configuration file:
   - By show ID (more precise) or show title (more convenient)
   - Include custom messages with your check-ins
   - See when you watched the episode in human-readable format
+- **Check in to movies** you're currently watching, and **cancel** an active check-in (movie or episode)
+  - By movie ID, slug, or IMDB ID, or by title and year
+  - If you are already checked in, the error says when you can check in again
 - **Search for shows** to find their details and IDs
 - **Manage your ratings**: View, add, and remove personal ratings for movies, shows, seasons, and episodes with pagination support, rating-range and date filters, and a summary mode (counts per rating plus the 20 most recent)
 - **Manage your watchlist**: View, add, and remove items from your watchlist with pagination and sorting support
@@ -620,6 +623,18 @@ checkin_to_show(
     show_year=2008,  # Optional but helps with accuracy
     message="I'm the one who knocks!"
 )
+
+# Check in to a movie by Trakt ID, slug, or IMDB ID (use search_movies to find it)
+checkin_to_movie(movie_id="120", message="Why so serious?")
+
+# Or by title (movie_year is required without an id)
+checkin_to_movie(movie_title="The Dark Knight", movie_year=2008)
+
+# Share on connected networks (overrides your Trakt defaults)
+checkin_to_movie(movie_id="tt0468569", share_mastodon=True)
+
+# Cancel your active check-in, movie or episode (progress is kept as paused playback)
+cancel_checkin()
 ```
 
 </details>
@@ -895,6 +910,8 @@ Once installed, Claude can use this MCP server to answer questions about enterta
 - "Remove Breaking Bad from my Weekend Watch list"
 - "Check me in to Season 2 Episode 5 of Breaking Bad"
 - "Check me in to Season 1 Episode 3 of show ID 1388"
+- "Check me in to The Dark Knight"
+- "Cancel my check-in"
 - "What's my progress on Breaking Bad?"
 - "How far am I through Game of Thrones?"
 - "What's my next episode of Stranger Things?"
@@ -913,7 +930,7 @@ With authentication, you can access:
 - Your complete watched show and movie history
 - Last watched dates for each show and movie
 - Number of times you've watched each show and movie
-- Check in to shows you're currently watching and track your progress
+- Check in to shows and movies you're currently watching, and cancel a check-in
 - Personal viewing statistics
 - Your complete watchlist with filtering and sorting options
 - Add and remove items from your watchlist

@@ -71,6 +71,8 @@ class TestToolNames:
             "fetch_user_watched_movies",
             "fetch_user_stats",
             "checkin_to_show",
+            "checkin_to_movie",
+            "cancel_checkin",
         ]
         for tool in user_tools:
             assert tool in TOOL_NAMES

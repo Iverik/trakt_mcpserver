@@ -17,6 +17,9 @@ class CheckinFormatters:
         Returns:
             Formatted response message
         """
+        if response.get("movie"):
+            return CheckinFormatters._format_movie_checkin(response)
+
         try:
             # Extract show and episode info
             show = response.get("show", {})
@@ -58,3 +61,38 @@ class CheckinFormatters:
         except Exception:
             # Fallback for any parsing errors
             return f"Successfully checked in to the show.\n\nDetails: {response!s}"
+
+    @staticmethod
+    def _format_movie_checkin(response: CheckinResponse) -> str:
+        """Format a movie check-in response."""
+        movie = response.get("movie", {})
+        title = movie.get("title", "Unknown movie")
+        year = movie.get("year")
+        label = f"**{title}** ({year})" if year else f"**{title}**"
+
+        message = f"# Successfully Checked In\n\nYou are now checked in to {label}\n\n"
+
+        if watched_at := response.get("watched_at"):
+            message += f"Watched at: {format_display_time(watched_at)} UTC\n\n"
+
+        if sharing := response.get("sharing", {}):
+            platforms = [
+                name.capitalize() for name, shared in sharing.items() if shared
+            ]
+            if platforms:
+                message += f"Shared on: {', '.join(platforms)}\n\n"
+
+        if checkin_id := response.get("id"):
+            message += f"Checkin ID: {checkin_id}\n"
+
+        return message
+
+    @staticmethod
+    def format_cancel_response() -> str:
+        """Format the confirmation for a cancelled check-in."""
+        return (
+            "# Check-in Cancelled\n\n"
+            "Your active check-in was removed. "
+            "Any elapsed progress is kept as paused playback, so checking in "
+            "to the same item again resumes from it."
+        )

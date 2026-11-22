@@ -2,4 +2,6 @@
 
 from typing import Final
 
-CHECKIN_TOOLS: Final[frozenset[str]] = frozenset({"checkin_to_show"})
+CHECKIN_TOOLS: Final[frozenset[str]] = frozenset(
+    {"checkin_to_show", "checkin_to_movie", "cancel_checkin"}
+)
