@@ -66,7 +66,7 @@ async def test_fetch_user_ratings_movies_success() -> None:
 
         mock_client.get_sync_ratings = AsyncMock(return_value=paginated_response)
 
-        result = await fetch_user_ratings(rating_type="movies")
+        result = await fetch_user_ratings(rating_type="movies", summary=False)
 
         # Verify result contains formatted content
         assert "# Your Movies Ratings" in result
@@ -120,7 +120,7 @@ async def test_fetch_user_ratings_with_rating_filter() -> None:
 
         mock_client.get_sync_ratings = AsyncMock(return_value=paginated_response)
 
-        result = await fetch_user_ratings(rating_type="shows", rating=10)
+        result = await fetch_user_ratings(rating_type="shows", rating=10, summary=False)
 
         assert "# Your Shows Ratings (filtered to rating 10)" in result
         assert "Found 1 rated show on this page" in result
@@ -152,7 +152,7 @@ async def test_fetch_user_ratings_empty_result() -> None:
 
         mock_client.get_sync_ratings = AsyncMock(return_value=empty_paginated_response)
 
-        result = await fetch_user_ratings(rating_type="episodes")
+        result = await fetch_user_ratings(rating_type="episodes", summary=False)
 
         assert "# Your Episodes Ratings" in result
         assert "You haven't rated any episodes yet" in result
@@ -172,7 +172,7 @@ async def test_fetch_user_ratings_error_handling() -> None:
         mock_client.get_sync_ratings = AsyncMock(side_effect=Exception("API error"))
 
         with pytest.raises(InternalError) as exc_info:
-            await fetch_user_ratings(rating_type="movies")
+            await fetch_user_ratings(rating_type="movies", summary=False)
 
         assert "An unexpected error occurred" in str(exc_info.value)
 
@@ -379,7 +379,7 @@ async def test_all_tools_content_type_validation() -> None:
                 return_value=empty_paginated_response
             )
 
-            result = await fetch_user_ratings(rating_type=content_type)
+            result = await fetch_user_ratings(rating_type=content_type, summary=False)
             assert f"You haven't rated any {content_type} yet" in result
 
             # Import here to avoid NameError
@@ -412,7 +412,9 @@ async def test_rating_parameter_validation() -> None:
                 return_value=empty_paginated_response
             )
 
-            result = await fetch_user_ratings(rating_type="movies", rating=rating)
+            result = await fetch_user_ratings(
+                rating_type="movies", rating=rating, summary=False
+            )
             assert f"You haven't rated any movies with rating {rating} yet" in result
 
             # Import here to avoid NameError

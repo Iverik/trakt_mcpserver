@@ -279,7 +279,7 @@ RATINGS_LIMIT_DESCRIPTION: Final[str] = (
 )
 RATINGS_SUMMARY_DESCRIPTION: Final[str] = (
     "Return counts per rating value (10 down to 1) and the 20 most recent "
-    "ratings instead of the full list"
+    "ratings instead of the full list (default true; ignored when page is given)"
 )
 
 # Items list descriptions

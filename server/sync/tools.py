@@ -519,7 +519,7 @@ async def fetch_user_ratings(
     max_rating: int | None = None,
     rated_after: str | None = None,
     limit: int | None = None,
-    summary: bool = False,
+    summary: bool = True,
 ) -> str:
     """Fetch authenticated user's personal ratings from Trakt.
 
@@ -532,6 +532,7 @@ async def fetch_user_ratings(
         rated_after: Only ratings made on or after this ISO 8601 date or datetime
         limit: Maximum number of ratings to return, most recently rated first
         summary: Return counts per rating value and the most recent ratings
+            (default True; ignored when 'page' is given, use False for the full list)
 
     Returns:
         User's personal ratings formatted as markdown. When 'page' is None,
@@ -543,6 +544,8 @@ async def fetch_user_ratings(
         AuthenticationRequiredError: If user is not authenticated
     """
     logger.debug("fetch_user_ratings called with rating_type=%s", rating_type)
+    # Summary is the default view; an explicit page asks for the plain list.
+    summary = summary and page is None
     # Validate parameters with Pydantic
     params = UserRatingsParams(
         rating_type=rating_type,
@@ -1357,7 +1360,8 @@ def register_sync_tools(
             "Fetch the authenticated user's personal ratings from Trakt. "
             "Supports optional pagination with 'page' parameter, and "
             "'min_rating', 'max_rating', 'rated_after' and 'limit' filters. "
-            "Set 'summary' for counts per rating plus the most recent ratings. "
+            "By default returns a summary (counts per rating plus the most recent "
+            "ratings); set 'summary' to false for the full list. "
             "Requires OAuth authentication."
         ),
     )
@@ -1393,7 +1397,7 @@ def register_sync_tools(
         summary: Annotated[
             bool,
             Field(description=RATINGS_SUMMARY_DESCRIPTION),
-        ] = False,
+        ] = True,
     ) -> str:
         return await fetch_user_ratings(
             rating_type,

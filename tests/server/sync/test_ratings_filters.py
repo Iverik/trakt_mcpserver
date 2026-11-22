@@ -99,16 +99,34 @@ class TestParamsValidation:
 
 
 @pytest.mark.asyncio
-async def test_default_path_unchanged() -> None:
-    """With no new inputs the single-response path is used, summary is off."""
-    ratings = [make_rating(1, 9)]
-    client = _client_with(ratings)
+async def test_default_is_summary() -> None:
+    """With no inputs the summary view is returned (fork default)."""
+    client = _client_with([make_rating(1, 9)])
     with patch("server.sync.tools.get_client", return_value=client):
         result = await fetch_user_ratings()
+    client.get_all_sync_ratings.assert_awaited_once_with("movies", None)
+    client.get_sync_ratings.assert_not_called()
+    assert "Ratings Summary" in result
+
+
+@pytest.mark.asyncio
+async def test_summary_false_uses_single_response_path() -> None:
+    """summary=False keeps the original single-response behaviour."""
+    client = _client_with([make_rating(1, 9)])
+    with patch("server.sync.tools.get_client", return_value=client):
+        result = await fetch_user_ratings(summary=False)
     client.get_sync_ratings.assert_awaited_once_with("movies", None, pagination=None)
     client.get_all_sync_ratings.assert_not_called()
     assert "Found 1 rated movie on this page" in result
-    assert "Summary" not in result
+
+
+@pytest.mark.asyncio
+async def test_explicit_page_wins_over_default_summary() -> None:
+    client = _client_with([make_rating(1, 9)])
+    with patch("server.sync.tools.get_client", return_value=client):
+        result = await fetch_user_ratings(page=1)
+    client.get_all_sync_ratings.assert_not_called()
+    assert "Found 1 rated movie on this page" in result
 
 
 @pytest.mark.asyncio
@@ -116,7 +134,7 @@ async def test_range_filters_client_side_over_full_set() -> None:
     ratings = [make_rating(i, r) for i, r in enumerate([10, 9, 8, 7, 6, 5], start=1)]
     client = _client_with(ratings)
     with patch("server.sync.tools.get_client", return_value=client):
-        result = await fetch_user_ratings(min_rating=7, max_rating=9)
+        result = await fetch_user_ratings(min_rating=7, max_rating=9, summary=False)
     client.get_all_sync_ratings.assert_awaited_once_with("movies", None)
     assert "Movie 2" in result and "Movie 3" in result and "Movie 4" in result
     assert "Movie 1" not in result and "Movie 5" not in result
@@ -126,7 +144,7 @@ async def test_range_filters_client_side_over_full_set() -> None:
 async def test_equal_min_max_uses_path_filter() -> None:
     client = _client_with([make_rating(1, 8)])
     with patch("server.sync.tools.get_client", return_value=client):
-        result = await fetch_user_ratings(min_rating=8, max_rating=8)
+        result = await fetch_user_ratings(min_rating=8, max_rating=8, summary=False)
     client.get_all_sync_ratings.assert_awaited_once_with("movies", 8)
     assert "filtered to rating 8" in result
 
@@ -136,7 +154,7 @@ async def test_rated_after_filters() -> None:
     ratings = [make_rating(i, 8, days=i) for i in range(1, 6)]  # Jan 2 .. Jan 6
     client = _client_with(ratings)
     with patch("server.sync.tools.get_client", return_value=client):
-        result = await fetch_user_ratings(rated_after="2024-01-05")
+        result = await fetch_user_ratings(rated_after="2024-01-05", summary=False)
     assert "Movie 4" in result and "Movie 5" in result
     assert "Movie 3" not in result
 
@@ -146,7 +164,7 @@ async def test_limit_keeps_most_recent() -> None:
     ratings = [make_rating(i, 8) for i in range(1, 6)]
     client = _client_with(ratings)
     with patch("server.sync.tools.get_client", return_value=client):
-        result = await fetch_user_ratings(limit=2)
+        result = await fetch_user_ratings(limit=2, summary=False)
     assert "Found 2 rated movies" in result
     assert "Movie 5" in result and "Movie 4" in result
     assert "Movie 3" not in result
@@ -156,14 +174,14 @@ async def test_limit_keeps_most_recent() -> None:
 async def test_no_matches_message() -> None:
     client = _client_with([make_rating(1, 3)])
     with patch("server.sync.tools.get_client", return_value=client):
-        result = await fetch_user_ratings(min_rating=9)
+        result = await fetch_user_ratings(min_rating=9, summary=False)
     assert "No movies ratings found" in result
 
 
 @pytest.mark.asyncio
 async def test_invalid_range_raises() -> None:
     with pytest.raises(Exception, match="must not exceed"):
-        await fetch_user_ratings(min_rating=9, max_rating=2)
+        await fetch_user_ratings(min_rating=9, max_rating=2, summary=False)
 
 
 @pytest.mark.asyncio

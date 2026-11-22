@@ -539,8 +539,11 @@ fetch_user_ratings(rating_type="movies", rating=10, page=1)
 # Filter by rating range and date, newest first (fetches every page, then filters)
 fetch_user_ratings(rating_type="movies", min_rating=8, rated_after="2024-01-01", limit=25)
 
-# Counts per rating value (10 down to 1) plus the 20 most recent ratings
-fetch_user_ratings(rating_type="movies", summary=True)
+# Default: counts per rating value (10 down to 1) plus the 20 most recent ratings
+fetch_user_ratings(rating_type="movies")
+
+# Full list instead of the summary
+fetch_user_ratings(rating_type="movies", summary=False)
 
 # Add new ratings for movies, shows, seasons, or episodes
 add_user_ratings(rating_type="movies", items=[{"trakt_id": "314", "rating": 9}])

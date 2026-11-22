@@ -123,7 +123,7 @@ async def test_fetch_user_ratings_integration(
             from server.sync.tools import fetch_user_ratings
 
             # Test fetching all movies
-            result = await fetch_user_ratings(rating_type="movies")
+            result = await fetch_user_ratings(rating_type="movies", summary=False)
             # Verify the formatted response
             assert "# Your Movies Ratings" in result
             assert "movies" in result
@@ -171,7 +171,9 @@ async def test_fetch_user_ratings_with_rating_filter_integration(
         ):
             from server.sync.tools import fetch_user_ratings
 
-            result = await fetch_user_ratings(rating_type="shows", rating=8)
+            result = await fetch_user_ratings(
+                rating_type="shows", rating=8, summary=False
+            )
             # Verify rating-specific formatting
             assert "# Your Shows Ratings (filtered to rating 8)" in result
             assert "show" in result
@@ -305,7 +307,7 @@ async def test_authentication_flow_integration(
             )
 
             # All operations should return auth required messages
-            result = await fetch_user_ratings(rating_type="movies")
+            result = await fetch_user_ratings(rating_type="movies", summary=False)
             assert "Authentication Required" in result
             assert "start_device_auth" in result
             assert "access your personal ratings" in result
@@ -354,7 +356,7 @@ async def test_error_propagation_integration(
         ):
             from server.sync.tools import fetch_user_ratings
 
-            result = await fetch_user_ratings(rating_type="movies")
+            result = await fetch_user_ratings(rating_type="movies", summary=False)
             assert isinstance(result, str)
             assert "# Error" in result
             assert "unexpected error occurred" in result.lower()
@@ -390,7 +392,7 @@ async def test_empty_ratings_response_integration(
         ):
             from server.sync.tools import fetch_user_ratings
 
-            result = await fetch_user_ratings(rating_type="episodes")
+            result = await fetch_user_ratings(rating_type="episodes", summary=False)
             # Verify empty state is handled gracefully
             assert "# Your Episodes Ratings" in result
             assert "You haven't rated any episodes yet" in result
@@ -449,17 +451,19 @@ async def test_mixed_content_types_integration(
             from server.sync.tools import fetch_user_ratings
 
             # Test movies
-            movie_result = await fetch_user_ratings(rating_type="movies")
+            movie_result = await fetch_user_ratings(rating_type="movies", summary=False)
             assert "TRON: Legacy" in movie_result
             assert "Breaking Bad" not in movie_result
 
             # Test shows
-            show_result = await fetch_user_ratings(rating_type="shows")
+            show_result = await fetch_user_ratings(rating_type="shows", summary=False)
             assert "Breaking Bad" in show_result
             assert "TRON: Legacy" not in show_result
 
             # Test episodes
-            episode_result = await fetch_user_ratings(rating_type="episodes")
+            episode_result = await fetch_user_ratings(
+                rating_type="episodes", summary=False
+            )
             assert "Breaking Bad" in episode_result
             assert "Rating 6/10" in episode_result
 
@@ -515,7 +519,7 @@ async def test_rating_grouping_integration(
         ):
             from server.sync.tools import fetch_user_ratings
 
-            result = await fetch_user_ratings(rating_type="movies")
+            result = await fetch_user_ratings(rating_type="movies", summary=False)
             # Verify ratings are grouped by score
             assert "## Rating 10/10 (2 movies)" in result
             assert "## Rating 8/10 (1 movie)" in result
@@ -777,7 +781,7 @@ async def test_fetch_user_ratings_backward_compatibility_integration(
             from server.sync.tools import fetch_user_ratings
 
             # Test without page parameter (non-paginated request)
-            result = await fetch_user_ratings(rating_type="movies")
+            result = await fetch_user_ratings(rating_type="movies", summary=False)
             # Verify response format (pagination info is always present in response)
             assert "# Your Movies Ratings" in result
             assert "Found 3 rated movies on this page" in result
