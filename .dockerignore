@@ -22,3 +22,6 @@ __pycache__/
 tests/
 .vscode/
 .idea/
+
+# Local virtualenv (the image builds its own)
+.venv/

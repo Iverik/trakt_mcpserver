@@ -1,7 +1,32 @@
 # Trakt MCP server - Streamable HTTP transport (legacy HTTP+SSE kept on /sse)
 # Endpoints on :8080: /mcp (Streamable HTTP), /sse (deprecated), /healthz
 
-FROM python:3.12-slim
+# Stage 1: resolve and install locked dependencies with uv.
+FROM python:3.15-slim AS build
+
+COPY --from=ghcr.io/astral-sh/uv:0.13.9 /uv /uvx /bin/
+
+WORKDIR /app
+ENV UV_NO_DEV=1 \
+    UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_PROJECT_ENVIRONMENT=/app/.venv
+
+# Layer 1: dependencies only. Source-only changes do not invalidate it, and a
+# stale uv.lock fails the build instead of silently re-resolving.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project --no-editable
+
+# Layer 2: the project itself.
+COPY . /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-editable
+
+# Stage 2: runtime with the virtualenv only (no uv, no build tooling).
+FROM python:3.15-slim
 
 ARG VERSION=dev
 ARG REPO_URL=https://github.com/wwiens/trakt_mcpserver
@@ -11,26 +36,16 @@ LABEL org.opencontainers.image.title="trakt-mcp"
 LABEL org.opencontainers.image.description="MCP server for Trakt.tv"
 LABEL org.opencontainers.image.licenses="MIT"
 
-# Create a non-root user and group
-RUN groupadd -g 1000 appuser && \
-    useradd -u 1000 -g appuser -m appuser
+# Non-root user, and a data directory it owns for the auth token
+RUN groupadd -g 1000 appuser \
+    && useradd -u 1000 -g appuser -m appuser \
+    && mkdir -p /data \
+    && chown appuser:appuser /data
 
-WORKDIR /app
+COPY --from=build /app/.venv /app/.venv
 
-# Layer 1 - deps from pyproject.toml only (cache key is pyproject.toml)
-COPY pyproject.toml ./
-RUN python -c "import tomllib; \
-print('\n'.join(tomllib.load(open('pyproject.toml','rb'))['project']['dependencies']))" \
-      > /tmp/requirements.txt \
-    && pip install --no-cache-dir -r /tmp/requirements.txt \
-    && rm /tmp/requirements.txt
-
-# Layer 2 - source + project metadata install (deps already satisfied)
-COPY . .
-RUN pip install --no-cache-dir --no-deps .
-
-# Create data directory for auth token persistence
-RUN mkdir -p /data && chown -R appuser:appuser /data /app
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1
 
 # Environment variables (pass at runtime via -e or --env-file)
 ENV TRAKT_CLIENT_ID=""
@@ -59,4 +74,4 @@ USER appuser
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD ["python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8080/healthz', timeout=4)"]
 
-ENTRYPOINT ["python", "server.py"]
+ENTRYPOINT ["trakt-mcp"]
