@@ -18,6 +18,8 @@ from typing import Final
 from config.api.constants import DEFAULT_FETCH_ALL_LIMIT, DEFAULT_LIMIT
 
 __all__: Final[list[str]] = [
+    "COLLECTION_INCLUDE_METADATA_DESCRIPTION",
+    "COLLECTION_TYPE_DESCRIPTION",
     "COMMENTS_LIMIT_DESCRIPTION",
     "COMMENT_ID_DESCRIPTION",
     "COMMENT_SORT_DESCRIPTION",
@@ -172,6 +174,13 @@ IGNORE_WATCHLISTED_DESCRIPTION: Final[str] = (
 # Content type descriptions
 RATING_TYPE_DESCRIPTION: Final[str] = (
     "Type of content: 'movies', 'shows', 'seasons', or 'episodes'"
+)
+COLLECTION_TYPE_DESCRIPTION: Final[str] = (
+    "Type of collection to fetch: 'movies' or 'shows'"
+)
+COLLECTION_INCLUDE_METADATA_DESCRIPTION: Final[str] = (
+    "Include collection metadata (media type, resolution, HDR, audio, "
+    "audio channels, 3D) when the item has it. Default false"
 )
 WATCHLIST_TYPE_DESCRIPTION: Final[str] = (
     "Type of content: 'all' (default), 'movies', 'shows', 'seasons', or 'episodes'"

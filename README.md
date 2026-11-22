@@ -159,6 +159,9 @@ Add to your Claude Desktop MCP configuration file:
   - Filter by type (all, movies, shows, seasons, episodes)
   - Sort by multiple criteria (rank, added, title, released, runtime, popularity, percentage, votes)
   - Add optional notes to watchlist items (VIP feature, 500 char limit)
+- **View your collection**: Fetch your whole movie or show collection in one call (all pages, no item cap)
+  - Movies list collected date and, optionally, resolution, HDR and audio
+  - Shows list how many episodes you have collected
 - **Track show progress**: See your watched progress for any TV show
   - View episodes watched vs aired with completion percentage
   - See your next episode to watch
@@ -515,6 +518,9 @@ add_user_ratings(rating_type="movies", items=[{"trakt_id": "314", "rating": 9}])
 # Remove existing ratings by ID
 remove_user_ratings(rating_type="movies", items=[{"trakt_id": "314"}])
 
+# Fetch your whole movie or show collection (all pages, optional metadata)
+fetch_user_collection(collection_type="movies", include_metadata=True)
+
 # Fetch user's watchlist with pagination and sorting
 fetch_user_watchlist(watchlist_type="all", sort_by="rank", sort_how="asc", page=1)
 
@@ -783,6 +789,7 @@ Once installed, Claude can use this MCP server to answer questions about enterta
 - "Show me my 10/10 rated movies"
 - "Add a 9/10 rating for Breaking Bad"
 - "Show me my watchlist"
+- "List my collected movies with resolution and HDR"
 - "What movies are on my watchlist?"
 - "Add The Godfather to my watchlist"
 - "Add Breaking Bad to my watchlist with a note" (VIP)

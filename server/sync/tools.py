@@ -12,6 +12,8 @@ from client.shows.seasons import ShowSeasonsClient
 from client.sync.client import SyncClient
 from config.api import DEFAULT_LIMIT
 from config.mcp.descriptions import (
+    COLLECTION_INCLUDE_METADATA_DESCRIPTION,
+    COLLECTION_TYPE_DESCRIPTION,
     HISTORY_END_AT_DESCRIPTION,
     HISTORY_ITEM_ID_DESCRIPTION,
     HISTORY_ITEMS_DESCRIPTION,
@@ -31,6 +33,7 @@ from config.mcp.descriptions import (
     WATCHLIST_TYPE_DESCRIPTION,
     WATCHLIST_TYPE_REQUIRED_DESCRIPTION,
 )
+from models.formatters.sync_collection import SyncCollectionFormatters
 from models.formatters.sync_history import SyncHistoryFormatters
 from models.formatters.sync_ratings import SyncRatingsFormatters
 from models.formatters.sync_watchlist import SyncWatchlistFormatters
@@ -548,6 +551,39 @@ async def remove_user_ratings(
 
 
 @handle_api_errors_func
+async def fetch_user_collection(
+    collection_type: Literal["movies", "shows"],
+    include_metadata: bool = False,
+) -> str:
+    """Fetch the authenticated user's entire collection from Trakt.
+
+    Args:
+        collection_type: Collection to fetch (movies or shows)
+        include_metadata: Include resolution, HDR, audio and related fields
+
+    Returns:
+        Every collected item as compact markdown, one line per item. All pages
+        are fetched; there is no item cap.
+
+    Raises:
+        AuthenticationRequiredError: If user is not authenticated
+    """
+    logger.debug("fetch_user_collection called with type=%s", collection_type)
+    try:
+        client = get_client(SyncClient)
+        result = await client.get_collection(collection_type, include_metadata)
+        result = _unwrap_or_raise(
+            result,
+            resource_type=f"user_{collection_type}_collection",
+            resource_id=f"user_collection_{collection_type}",
+            operation="fetch_user_collection",
+        )
+        return SyncCollectionFormatters.format_user_collection(result, collection_type)
+    except MCPError:
+        raise
+
+
+@handle_api_errors_func
 async def fetch_user_watchlist(
     watchlist_type: Literal["all", "movies", "shows", "seasons", "episodes"] = "all",
     sort_by: WatchlistSortField = "rank",
@@ -961,8 +997,9 @@ def register_sync_tools(
     ToolHandler,
     ToolHandler,
     ToolHandler,
+    ToolHandler,
 ]:
-    """Register sync tools (ratings, watchlist, history) with the MCP server.
+    """Register sync tools (ratings, watchlist, collection, history).
 
     Returns:
         Tuple of tool handlers for type checker visibility
@@ -1035,6 +1072,27 @@ def register_sync_tools(
         ],
     ) -> str:
         return await remove_user_ratings(rating_type, items)
+
+    @mcp.tool(
+        name="fetch_user_collection",
+        description=(
+            "Fetch the authenticated user's entire movie or show collection "
+            "from Trakt (all pages, no item cap). Shows list the number of "
+            "collected episodes. Optionally include media metadata. "
+            "Requires OAuth authentication."
+        ),
+    )
+    async def fetch_user_collection_tool(
+        collection_type: Annotated[
+            Literal["movies", "shows"],
+            Field(description=COLLECTION_TYPE_DESCRIPTION),
+        ],
+        include_metadata: Annotated[
+            bool,
+            Field(description=COLLECTION_INCLUDE_METADATA_DESCRIPTION),
+        ] = False,
+    ) -> str:
+        return await fetch_user_collection(collection_type, include_metadata)
 
     @mcp.tool(
         name="fetch_user_watchlist",
@@ -1195,6 +1253,7 @@ def register_sync_tools(
         fetch_user_ratings_tool,
         add_user_ratings_tool,
         remove_user_ratings_tool,
+        fetch_user_collection_tool,
         fetch_user_watchlist_tool,
         add_user_watchlist_tool,
         remove_user_watchlist_tool,

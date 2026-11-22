@@ -7,6 +7,7 @@ SYNC_TOOLS: Final[frozenset[str]] = frozenset(
         "fetch_user_ratings",
         "add_user_ratings",
         "remove_user_ratings",
+        "fetch_user_collection",
         "fetch_user_watchlist",
         "add_user_watchlist",
         "remove_user_watchlist",

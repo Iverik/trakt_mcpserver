@@ -3,12 +3,14 @@
 from typing import Final
 
 from .client import SyncClient
+from .collection_client import SyncCollectionClient
 from .history_client import SyncHistoryClient
 from .ratings_client import SyncRatingsClient
 from .watchlist_client import SyncWatchlistClient
 
 __all__: Final[list[str]] = [
     "SyncClient",
+    "SyncCollectionClient",
     "SyncHistoryClient",
     "SyncRatingsClient",
     "SyncWatchlistClient",

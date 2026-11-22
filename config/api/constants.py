@@ -7,6 +7,7 @@ DEFAULT_LIMIT: Final[int] = 10
 DEFAULT_MAX_PAGES: Final[int] = 100  # Safety limit for auto-pagination
 DEFAULT_FETCH_ALL_LIMIT: Final[int] = 100  # Safety cap when limit=0 (fetch all)
 MAX_API_PAGE_SIZE: Final[int] = 100  # Maximum items per page supported by Trakt API
+MAX_COLLECTION_PAGES: Final[int] = 200  # Runaway guard for fetch-everything calls
 
 
 class EffectiveLimit(NamedTuple):

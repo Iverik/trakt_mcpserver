@@ -5,6 +5,7 @@ from .constants import (
     DEFAULT_LIMIT,
     DEFAULT_MAX_PAGES,
     MAX_API_PAGE_SIZE,
+    MAX_COLLECTION_PAGES,
     EffectiveLimit,
     effective_limit,
 )
@@ -14,6 +15,7 @@ __all__ = [
     "DEFAULT_LIMIT",
     "DEFAULT_MAX_PAGES",
     "MAX_API_PAGE_SIZE",
+    "MAX_COLLECTION_PAGES",
     "EffectiveLimit",
     "effective_limit",
 ]
