@@ -8,13 +8,13 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
-import client.sync.collection_client as collection_module
+import client.sync.all_pages_client as collection_module
 from client.sync.client import SyncClient
 from client.sync.collection_client import SyncCollectionClient
 from models.sync.collection import CollectionFetchResult
 from utils.api.error_types import AuthenticationRequiredError
 
-TOTAL_MOVIES = 250
+TOTAL_MOVIES = 600
 
 
 def _movie(index: int, *, metadata: bool = False) -> dict[str, Any]:
@@ -128,7 +128,7 @@ class TestGetCollection:
     async def test_fetches_every_page_past_the_safety_cap(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Items beyond 100 are returned: the fetch-all cap does not apply."""
+        """Items beyond the page size are returned: the fetch-all cap does not apply."""
         seen: list[httpx.Request] = []
         client = _client(monkeypatch, _paged_handler(TOTAL_MOVIES, seen))
 
@@ -138,11 +138,11 @@ class TestGetCollection:
         assert result.pages_fetched == 3
         assert result.truncated is False
         titles = [item.movie.title for item in result.items if item.movie]
-        assert titles[100] == "Movie 100"
+        assert titles[250] == "Movie 250"
         assert titles[-1] == f"Movie {TOTAL_MOVIES - 1}"
         assert [r.url.params["page"] for r in seen] == ["1", "2", "3"]
         assert all(r.url.path == "/sync/collection/movies" for r in seen)
-        assert all(r.url.params["limit"] == "100" for r in seen)
+        assert all(r.url.params["limit"] == "250" for r in seen)
         assert all("extended" not in r.url.params for r in seen)
 
     @pytest.mark.asyncio
@@ -189,6 +189,20 @@ class TestGetCollection:
         assert metadata.audio == "dolby_atmos"
         assert metadata.audio_channels == "7.1"
         assert metadata.three_d is False
+
+    @pytest.mark.asyncio
+    async def test_details_flag_sends_extended_full(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """include_details sends extended=full, combined with metadata."""
+        seen: list[httpx.Request] = []
+        client = _client(monkeypatch, _paged_handler(2, seen))
+
+        await client.get_collection("movies", include_details=True)
+        await client.get_collection("movies", True, True)
+
+        assert seen[0].url.params["extended"] == "full"
+        assert seen[1].url.params["extended"] == "full,metadata"
 
     @pytest.mark.asyncio
     async def test_metadata_is_optional(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -239,7 +253,7 @@ class TestGetCollection:
 
         assert result.truncated is True
         assert result.pages_fetched == 2
-        assert len(result.items) == 200
+        assert len(result.items) == 500
         assert len(seen) == 2
 
     @pytest.mark.asyncio

@@ -7,8 +7,11 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from mcp.server.fastmcp import FastMCP
 
-from models.movies.movie import TraktMovie
-from models.sync.collection import CollectionFetchResult, CollectionItem
+from models.sync.collection import (
+    CollectionFetchResult,
+    CollectionItem,
+    CollectionMovie,
+)
 from models.types.ids import TraktIds
 from server.sync.tools import fetch_user_collection, register_sync_tools
 
@@ -17,7 +20,7 @@ from server.sync.tools import fetch_user_collection, register_sync_tools
 async def test_fetch_user_collection_formats_result() -> None:
     """The tool passes its arguments to the client and formats the result."""
     item = CollectionItem(
-        movie=TraktMovie(title="Inception", year=2010, ids=TraktIds(trakt=1)),
+        movie=CollectionMovie(title="Inception", year=2010, ids=TraktIds(trakt=1)),
         collected_at=datetime.fromisoformat("2024-01-15T10:30:00+00:00"),
     )
     with patch("server.sync.tools.SyncClient") as mock_client_class:
@@ -45,4 +48,8 @@ async def test_fetch_user_collection_is_registered_read_only() -> None:
     schema = json.loads(json.dumps(tools["fetch_user_collection"].inputSchema))
     assert set(schema["properties"]) == {"collection_type", "include_metadata"}
     assert schema["required"] == ["collection_type"]
-    assert not [name for name in tools if "collection" in name and "fetch" not in name]
+    assert not [
+        name
+        for name in tools
+        if "collection" in name and name.startswith(("add_", "remove_"))
+    ]

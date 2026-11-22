@@ -3,13 +3,13 @@
 from datetime import datetime
 
 from models.formatters.sync_collection import SyncCollectionFormatters
-from models.movies.movie import TraktMovie
 from models.shows.show import TraktShow
 from models.sync.collection import (
     CollectionEpisode,
     CollectionFetchResult,
     CollectionItem,
     CollectionMetadata,
+    CollectionMovie,
     CollectionSeason,
 )
 from models.types.ids import TraktIds
@@ -21,7 +21,7 @@ def _movie_item(
     title: str, metadata: CollectionMetadata | None = None
 ) -> CollectionItem:
     return CollectionItem(
-        movie=TraktMovie(title=title, year=2010, ids=IDS),
+        movie=CollectionMovie(title=title, year=2010, ids=IDS),
         collected_at=datetime.fromisoformat("2024-01-15T10:30:00+00:00"),
         metadata=metadata,
     )

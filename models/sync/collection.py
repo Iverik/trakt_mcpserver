@@ -39,11 +39,20 @@ class CollectionSeason(BaseModel):
     )
 
 
+class CollectionMovie(TraktMovie):
+    """A collected movie, with the fields ``extended=full`` adds when present."""
+
+    runtime: int | None = Field(default=None, ge=0, description="Minutes")
+    genres: list[str] = Field(default_factory=lambda: list[str]())
+    rating: float | None = Field(default=None, description="Community rating, 0-10")
+    released: str | None = Field(default=None, description="YYYY-MM-DD")
+
+
 class CollectionItem(BaseModel):
     """One item from the sync collection API (a movie or a show)."""
 
     type: Literal["movie", "show"] | None = None
-    movie: TraktMovie | None = None
+    movie: CollectionMovie | None = None
     show: TraktShow | None = None
     collected_at: datetime | None = Field(
         default=None, description="Movies: when it was collected"

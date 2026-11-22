@@ -16,6 +16,7 @@ from config.auth import (
 )
 from models.formatters.auth import AuthFormatters
 from server.base import ToolErrors
+from server.sync.cache import invalidate_all_caches
 from utils.api.error_types import AuthorizationPendingError, DeviceAuthorizationError
 from utils.api.errors import InternalError
 
@@ -182,6 +183,7 @@ few seconds and try again by telling me "Please check my authorization status"."
         # An overlapping check may already have exchanged this code (409) and
         # saved the token; a fresh client re-reads it from disk.
         if get_client(AuthClient).is_authenticated():
+            invalidate_all_caches()
             return _AUTH_SUCCESS_MESSAGE
         return f"# Authorization Not Completed\n\n{e.message}"
     except InternalError as e:
@@ -195,7 +197,8 @@ by telling me "Please check my authorization status".
 
 If this error persists, you may need to restart the authentication process."""
     else:
-        # Authentication successful
+        # Authentication successful; snapshots may belong to another account.
+        invalidate_all_caches()
         async with auth_flow_lock:
             # A slow success for an older code must not end a newer flow.
             if active_auth_flow.get("device_code") == device_code:
@@ -231,6 +234,9 @@ async def clear_auth() -> str:
     global active_auth_flow
     async with auth_flow_lock:
         active_auth_flow = {}
+
+    # Cached snapshots belong to the account being logged out.
+    invalidate_all_caches()
 
     # Try to clear the token
     if client.clear_auth_token():

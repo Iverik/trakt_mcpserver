@@ -2,16 +2,15 @@
 
 from typing import Literal
 
-from config.api import MAX_API_PAGE_SIZE, MAX_COLLECTION_PAGES
 from config.endpoints.sync import SYNC_ENDPOINTS
 from models.sync.collection import CollectionFetchResult, CollectionItem
 from utils.api.error_types import AuthenticationRequiredError
 from utils.api.errors import handle_api_errors
 
-from ..auth import AuthClient
+from .all_pages_client import SyncAllPagesClient
 
 
-class SyncCollectionClient(AuthClient):
+class SyncCollectionClient(SyncAllPagesClient):
     """Client for reading the user's collection."""
 
     @handle_api_errors
@@ -19,18 +18,21 @@ class SyncCollectionClient(AuthClient):
         self,
         collection_type: Literal["movies", "shows"],
         include_metadata: bool = False,
+        include_details: bool = False,
     ) -> CollectionFetchResult:
         """Fetch the user's entire collection of one type, following every page.
 
         Unlike the list tools, this applies no item cap: a truncated collection
-        gives wrong answers. Only a page-count guard (MAX_COLLECTION_PAGES)
-        stops a runaway loop, and it is reported on the result. A response
-        without pagination headers counts as one complete page.
+        gives wrong answers. Only a page-count guard stops a runaway loop, and
+        it is reported on the result.
 
         Args:
             collection_type: Collection to fetch (movies or shows)
             include_metadata: Send ``extended=metadata`` to include media type,
                 resolution, HDR, audio, audio channels and 3D
+            include_details: Send ``extended=full`` so movies carry runtime,
+                genres, community rating and release date. Combined with
+                include_metadata as ``extended=full,metadata``
 
         Returns:
             Every collected item, the number of pages read, and whether the
@@ -45,25 +47,23 @@ class SyncCollectionClient(AuthClient):
         endpoint = SYNC_ENDPOINTS["sync_collection_get"].replace(
             ":type", collection_type
         )
-        items: list[CollectionItem] = []
-        page = 1
-        pages_fetched = 0
-
-        while pages_fetched < MAX_COLLECTION_PAGES:
-            params: dict[str, str | int] = {"page": page, "limit": MAX_API_PAGE_SIZE}
-            if include_metadata:
-                params["extended"] = "metadata"
-            response = await self._make_paginated_request(
-                endpoint, response_type=CollectionItem, params=params
+        params: dict[str, str] = {}
+        extended = [
+            name
+            for name, wanted in (
+                ("full", include_details),
+                ("metadata", include_metadata),
             )
-            pages_fetched += 1
-            items.extend(response.data)
+            if wanted
+        ]
+        if extended:
+            params["extended"] = ",".join(extended)
 
-            next_page = response.pagination.next_page()
-            if next_page is None:
-                return CollectionFetchResult(items=items, pages_fetched=pages_fetched)
-            page = next_page
-
+        result = await self._fetch_all_pages(
+            endpoint, response_type=CollectionItem, params=params
+        )
         return CollectionFetchResult(
-            items=items, pages_fetched=pages_fetched, truncated=True
+            items=result.items,
+            pages_fetched=result.pages_fetched,
+            truncated=result.truncated,
         )

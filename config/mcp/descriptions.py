@@ -16,7 +16,12 @@ Naming Convention:
 from typing import Final
 
 from config.api.calendars import CALENDAR_DEFAULT_DAYS, CALENDAR_MAX_DAYS
-from config.api.constants import DEFAULT_FETCH_ALL_LIMIT, DEFAULT_LIMIT
+from config.api.constants import (
+    DEFAULT_FETCH_ALL_LIMIT,
+    DEFAULT_LIMIT,
+    UNWATCHED_DEFAULT_LIMIT,
+    UNWATCHED_MAX_LIMIT,
+)
 
 __all__: Final[list[str]] = [
     "CALENDAR_DAYS_DESCRIPTION",
@@ -75,6 +80,14 @@ __all__: Final[list[str]] = [
     "SHOW_PROGRESS_VERBOSE_DESCRIPTION",
     "SHOW_SPOILERS_DESCRIPTION",
     "SORT_DIRECTION_DESCRIPTION",
+    "UNWATCHED_GENRES_EXCLUDE_DESCRIPTION",
+    "UNWATCHED_GENRES_INCLUDE_DESCRIPTION",
+    "UNWATCHED_LIMIT_DESCRIPTION",
+    "UNWATCHED_MAX_RUNTIME_DESCRIPTION",
+    "UNWATCHED_MIN_RATING_DESCRIPTION",
+    "UNWATCHED_MIN_RUNTIME_DESCRIPTION",
+    "UNWATCHED_SORT_DESCRIPTION",
+    "UNWATCHED_TYPE_DESCRIPTION",
     "USER_LIMIT_DESCRIPTION",
     "WATCHLIST_ITEMS_DESCRIPTION",
     "WATCHLIST_REMOVE_ITEMS_DESCRIPTION",
@@ -202,6 +215,33 @@ COLLECTION_TYPE_DESCRIPTION: Final[str] = (
 COLLECTION_INCLUDE_METADATA_DESCRIPTION: Final[str] = (
     "Include collection metadata (media type, resolution, HDR, audio, "
     "audio channels, 3D) when the item has it. Default false"
+)
+UNWATCHED_TYPE_DESCRIPTION: Final[str] = (
+    "Type of collection: 'movies' (default). Shows are not supported yet"
+)
+UNWATCHED_MIN_RUNTIME_DESCRIPTION: Final[str] = (
+    "Only films at least this many minutes long. Films with no runtime are left out"
+)
+UNWATCHED_MAX_RUNTIME_DESCRIPTION: Final[str] = (
+    "Only films at most this many minutes long. Films with no runtime are left out"
+)
+UNWATCHED_GENRES_INCLUDE_DESCRIPTION: Final[str] = (
+    "Genre slugs, case-insensitive, e.g. ['drama', 'science-fiction']. "
+    "A film must have at least one of them"
+)
+UNWATCHED_GENRES_EXCLUDE_DESCRIPTION: Final[str] = (
+    "Genre slugs, case-insensitive. Films with any of them are left out"
+)
+UNWATCHED_MIN_RATING_DESCRIPTION: Final[str] = (
+    "Only films with a Trakt community rating of at least this, from 0 to 10, "
+    "e.g. 7.5. Unrated films are left out"
+)
+UNWATCHED_SORT_DESCRIPTION: Final[str] = (
+    "Order: 'rating' (highest first, default), 'runtime' (shortest first), "
+    "'collected_at' (newest first), 'released' (newest first) or 'random'"
+)
+UNWATCHED_LIMIT_DESCRIPTION: Final[str] = (
+    f"Maximum films to list, 1-{UNWATCHED_MAX_LIMIT}. Default {UNWATCHED_DEFAULT_LIMIT}"
 )
 WATCHLIST_TYPE_DESCRIPTION: Final[str] = (
     "Type of content: 'all' (default), 'movies', 'shows', 'seasons', or 'episodes'"

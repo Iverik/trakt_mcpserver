@@ -462,3 +462,40 @@ async def test_check_auth_status_unexpected_reply_keeps_interval():
 
         assert "Unexpected reply." in result
         assert auth_tools.active_auth_flow["interval"] == 5
+
+
+@pytest.mark.asyncio
+async def test_clear_auth_drops_cached_sync_data():
+    with (
+        patch("server.auth.tools.AuthClient") as mock_client_class,
+        patch("server.auth.tools.invalidate_all_caches") as invalidate,
+    ):
+        mock_client_class.return_value.clear_auth_token.return_value = True
+
+        await clear_auth()
+
+    invalidate.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_successful_device_login_drops_cached_sync_data():
+    active_flow = {
+        "device_code": "device_code_123",
+        "expires_at": int(time.time()) + 500,
+        "interval": 5,
+        "last_poll": int(time.time()) - 10,
+    }
+    with (
+        patch("server.auth.tools.AuthClient") as mock_client_class,
+        patch("server.auth.tools.active_auth_flow", active_flow),
+        patch("server.auth.tools.invalidate_all_caches") as invalidate,
+    ):
+        mock_client = mock_client_class.return_value
+        mock_client.is_authenticated.return_value = False
+        token_future: asyncio.Future[Any] = asyncio.Future()
+        token_future.set_result(None)
+        mock_client.get_device_token.return_value = token_future
+
+        await check_auth_status()
+
+    invalidate.assert_called_once()

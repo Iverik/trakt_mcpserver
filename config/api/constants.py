@@ -8,6 +8,10 @@ DEFAULT_MAX_PAGES: Final[int] = 100  # Safety limit for auto-pagination
 DEFAULT_FETCH_ALL_LIMIT: Final[int] = 100  # Safety cap when limit=0 (fetch all)
 MAX_API_PAGE_SIZE: Final[int] = 100  # Maximum items per page supported by Trakt API
 MAX_COLLECTION_PAGES: Final[int] = 200  # Runaway guard for fetch-everything calls
+MAX_SYNC_PAGE_SIZE: Final[int] = 250  # Items per page for fetch-everything sync reads
+SYNC_CACHE_TTL_SECONDS: Final[float] = 15 * 60  # Lifetime of cached sync snapshots
+UNWATCHED_DEFAULT_LIMIT: Final[int] = 25  # Films shown by unwatched_in_collection
+UNWATCHED_MAX_LIMIT: Final[int] = 100  # Upper bound for the films shown
 
 
 class EffectiveLimit(NamedTuple):

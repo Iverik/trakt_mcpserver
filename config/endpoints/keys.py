@@ -94,6 +94,7 @@ EndpointKey = Literal[
     "sync_ratings_add",
     "sync_ratings_remove",
     "sync_collection_get",
+    "sync_watched_get",
     "sync_watchlist_add",
     "sync_watchlist_get",
     "sync_watchlist_get_all",

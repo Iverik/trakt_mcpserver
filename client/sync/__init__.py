@@ -6,6 +6,7 @@ from .client import SyncClient
 from .collection_client import SyncCollectionClient
 from .history_client import SyncHistoryClient
 from .ratings_client import SyncRatingsClient
+from .watched_client import SyncWatchedClient
 from .watchlist_client import SyncWatchlistClient
 
 __all__: Final[list[str]] = [
@@ -13,5 +14,6 @@ __all__: Final[list[str]] = [
     "SyncCollectionClient",
     "SyncHistoryClient",
     "SyncRatingsClient",
+    "SyncWatchedClient",
     "SyncWatchlistClient",
 ]

@@ -162,6 +162,11 @@ Add to your Claude Desktop MCP configuration file:
 - **View your collection**: Fetch your whole movie or show collection in one call (all pages, no item cap)
   - Movies list collected date and, optionally, resolution, HDR and audio
   - Shows list how many episodes you have collected
+- **Find what you have not watched**: `unwatched_in_collection` compares your whole movie collection with everything you have watched in one call
+  - Filter by runtime, genres (include and exclude) and Trakt community rating
+  - Sort by rating, runtime, collected date, release date or at random, and limit the list
+  - Each line shows title, runtime, genres, rating and resolution
+  - Movies only for now; shows are planned. The collection and watched set are cached for 15 minutes and refreshed when you add or remove history
 - **Track show progress**: See your watched progress for any TV show
   - View episodes watched vs aired with completion percentage
   - See your next episode to watch
@@ -537,6 +542,9 @@ remove_user_ratings(rating_type="movies", items=[{"trakt_id": "314"}])
 # Fetch your whole movie or show collection (all pages, optional metadata)
 fetch_user_collection(collection_type="movies", include_metadata=True)
 
+# Collected movies you have not watched: under 2 hours, any drama or thriller, no horror
+unwatched_in_collection(max_runtime=120, genres_include=["drama", "thriller"], genres_exclude=["horror"], min_trakt_rating=7.0, sort="rating", limit=10)
+
 # Fetch user's watchlist with pagination and sorting
 fetch_user_watchlist(watchlist_type="all", sort_by="rank", sort_how="asc", page=1)
 
@@ -833,6 +841,7 @@ Once installed, Claude can use this MCP server to answer questions about enterta
 - "Add a 9/10 rating for Breaking Bad"
 - "Show me my watchlist"
 - "List my collected movies with resolution and HDR"
+- "What do I own that I have not watched? Something under two hours, rated 7 or better"
 - "What movies are on my watchlist?"
 - "Add The Godfather to my watchlist"
 - "Add Breaking Bad to my watchlist with a note" (VIP)

@@ -14,6 +14,8 @@ SYNC_ENDPOINTS: Final[Mapping[EndpointKey, str]] = {
     "sync_ratings_remove": "/sync/ratings/remove",
     # Collection endpoints
     "sync_collection_get": "/sync/collection/:type",
+    # Watched endpoints
+    "sync_watched_get": "/sync/watched/:type",
     # Watchlist endpoints
     "sync_watchlist_add": "/sync/watchlist",
     "sync_watchlist_get": "/sync/watchlist/:type/:sort_by/:sort_how",

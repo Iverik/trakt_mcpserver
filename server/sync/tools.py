@@ -1,6 +1,7 @@
 """Sync tools for the Trakt MCP server."""
 
 import logging
+import random
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from typing import Annotated, Any, ClassVar, Literal
@@ -11,7 +12,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from client.pool import get_client
 from client.shows.seasons import ShowSeasonsClient
 from client.sync.client import SyncClient
-from config.api import DEFAULT_LIMIT
+from config.api import DEFAULT_LIMIT, UNWATCHED_DEFAULT_LIMIT, UNWATCHED_MAX_LIMIT
 from config.api.sync import RATING_MAX, RATING_MIN, RATINGS_SUMMARY_RECENT_COUNT
 from config.mcp.descriptions import (
     COLLECTION_INCLUDE_METADATA_DESCRIPTION,
@@ -34,6 +35,14 @@ from config.mcp.descriptions import (
     RATINGS_LIMIT_DESCRIPTION,
     RATINGS_SUMMARY_DESCRIPTION,
     SORT_DIRECTION_DESCRIPTION,
+    UNWATCHED_GENRES_EXCLUDE_DESCRIPTION,
+    UNWATCHED_GENRES_INCLUDE_DESCRIPTION,
+    UNWATCHED_LIMIT_DESCRIPTION,
+    UNWATCHED_MAX_RUNTIME_DESCRIPTION,
+    UNWATCHED_MIN_RATING_DESCRIPTION,
+    UNWATCHED_MIN_RUNTIME_DESCRIPTION,
+    UNWATCHED_SORT_DESCRIPTION,
+    UNWATCHED_TYPE_DESCRIPTION,
     WATCHLIST_ITEMS_DESCRIPTION,
     WATCHLIST_REMOVE_ITEMS_DESCRIPTION,
     WATCHLIST_SORT_BY_DESCRIPTION,
@@ -43,7 +52,9 @@ from config.mcp.descriptions import (
 from models.formatters.sync_collection import SyncCollectionFormatters
 from models.formatters.sync_history import SyncHistoryFormatters
 from models.formatters.sync_ratings import SyncRatingsFormatters
+from models.formatters.sync_unwatched import SyncUnwatchedFormatters
 from models.formatters.sync_watchlist import SyncWatchlistFormatters
+from models.sync.collection import CollectionFetchResult
 from models.sync.history import (
     HistoryQueryParams,
     HistorySummary,
@@ -56,6 +67,8 @@ from models.sync.ratings import (
     TraktSyncRatingItem,
     TraktSyncRatingsRequest,
 )
+from models.sync.unwatched import UnwatchedQuery, UnwatchedSort
+from models.sync.watched import WatchedMovieItem
 from models.sync.watchlist import (
     TraktSyncWatchlistItem,
     TraktSyncWatchlistRequest,
@@ -68,6 +81,13 @@ from models.types.pagination import (
 )
 from models.types.timestamps import WatchedAtValue
 from server.base import IdentifierValidatorMixin, ToolErrors
+from server.sync.cache import (
+    COLLECTED_MOVIES_CACHE,
+    WATCHED_MOVIES_CACHE,
+    invalidate_watched_cache,
+)
+from server.sync.unwatched_selection import select_unwatched
+from utils.api.error_types import AuthenticationRequiredError
 from utils.api.errors import InvalidParamsError, MCPError, handle_api_errors_func
 
 logger = logging.getLogger("trakt_mcp")
@@ -747,6 +767,100 @@ async def fetch_user_collection(
         raise
 
 
+async def _require_auth(client: SyncClient, action: str) -> None:
+    """Fail before any cached snapshot is served to a logged-out session."""
+    if not await client.ensure_authenticated():
+        raise AuthenticationRequiredError(action=action)
+
+
+async def _load_collected_movies() -> CollectionFetchResult:
+    """Fetch the whole movie collection with runtime, genres, rating, metadata."""
+    result = await get_client(SyncClient).get_collection(
+        "movies", include_metadata=True, include_details=True
+    )
+    return _unwrap_or_raise(
+        result,
+        resource_type="user_movies_collection",
+        resource_id="user_collection_movies",
+        operation="unwatched_in_collection",
+    )
+
+
+async def _load_watched_movies() -> list[WatchedMovieItem]:
+    """Fetch every watched movie, across all pages."""
+    result = await get_client(SyncClient).get_watched_movies()
+    return _unwrap_or_raise(
+        result,
+        resource_type="user_watched_movies",
+        resource_id="user_watched_movies",
+        operation="unwatched_in_collection",
+    )
+
+
+@handle_api_errors_func
+async def unwatched_in_collection(
+    collection_type: Literal["movies"] = "movies",
+    min_runtime: int | None = None,
+    max_runtime: int | None = None,
+    genres_include: list[str] | None = None,
+    genres_exclude: list[str] | None = None,
+    min_trakt_rating: float | None = None,
+    sort: UnwatchedSort = "rating",
+    limit: int = UNWATCHED_DEFAULT_LIMIT,
+    rng: random.Random | None = None,
+) -> str:
+    """List collected movies the user has not watched, filtered and sorted.
+
+    The collection and the watched set are cached for 15 minutes, and the
+    watched set is dropped whenever history is added or removed.
+
+    Args:
+        collection_type: Collection to check (movies only for now)
+        min_runtime: Minimum runtime in minutes
+        max_runtime: Maximum runtime in minutes
+        genres_include: Keep films with at least one of these genre slugs
+        genres_exclude: Drop films with any of these genre slugs
+        min_trakt_rating: Minimum community rating, 0-10
+        sort: rating, runtime, collected_at, released or random
+        limit: Maximum films to list
+        rng: Random source for sort="random"; defaults to a fresh one
+
+    Returns:
+        Counts, then one line per film
+
+    Raises:
+        AuthenticationRequiredError: If user is not authenticated
+        ValidationError: If parameters are invalid
+    """
+    query = UnwatchedQuery(
+        collection_type=collection_type,
+        min_runtime=min_runtime,
+        max_runtime=max_runtime,
+        genres_include=genres_include or [],
+        genres_exclude=genres_exclude or [],
+        min_trakt_rating=min_trakt_rating,
+        sort=sort,
+        limit=limit,
+    )
+    logger.debug("unwatched_in_collection called with sort=%s", query.sort)
+    await _require_auth(get_client(SyncClient), "check your collection")
+    collected = await COLLECTED_MOVIES_CACHE.get_or_load(_load_collected_movies)
+    watched = await WATCHED_MOVIES_CACHE.get_or_load(_load_watched_movies)
+    selection = select_unwatched(
+        collected.items,
+        watched,
+        query,
+        rng or random.Random(),  # noqa: S311  # shuffle, not security
+    )
+    output = SyncUnwatchedFormatters.format_unwatched(selection)
+    if collected.truncated:
+        output += (
+            f"\n\nWARNING: collection read stopped after {collected.pages_fetched} "
+            + "pages; this list is incomplete."
+        )
+    return output
+
+
 @handle_api_errors_func
 async def fetch_user_watchlist(
     watchlist_type: Literal["all", "movies", "shows", "seasons", "episodes"] = "all",
@@ -1077,14 +1191,19 @@ async def add_to_history(
             )
         )
 
-    # For shows, batch per-season to avoid Trakt API gateway timeouts
-    if history_type == "shows":
-        summary = await _batch_show_history_op(
-            client.add_to_history, history_items, "added"
-        )
-    else:
-        request = TraktHistoryRequest(**{history_type: history_items})
-        summary = await client.add_to_history(request)
+    # A write that times out may still have been applied by Trakt, so the
+    # cached watched set is dropped whether or not the call succeeded.
+    try:
+        # For shows, batch per-season to avoid Trakt API gateway timeouts
+        if history_type == "shows":
+            summary = await _batch_show_history_op(
+                client.add_to_history, history_items, "added"
+            )
+        else:
+            request = TraktHistoryRequest(**{history_type: history_items})
+            summary = await client.add_to_history(request)
+    finally:
+        invalidate_watched_cache()
 
     summary = _unwrap_or_raise(
         summary,
@@ -1128,14 +1247,19 @@ async def remove_from_history(
             )
         )
 
-    # For shows, batch per-season to avoid Trakt API gateway timeouts
-    if history_type == "shows":
-        summary = await _batch_show_history_op(
-            client.remove_from_history, history_items, "deleted"
-        )
-    else:
-        request = TraktHistoryRequest(**{history_type: history_items})
-        summary = await client.remove_from_history(request)
+    # A write that times out may still have been applied by Trakt, so the
+    # cached watched set is dropped whether or not the call succeeded.
+    try:
+        # For shows, batch per-season to avoid Trakt API gateway timeouts
+        if history_type == "shows":
+            summary = await _batch_show_history_op(
+                client.remove_from_history, history_items, "deleted"
+            )
+        else:
+            request = TraktHistoryRequest(**{history_type: history_items})
+            summary = await client.remove_from_history(request)
+    finally:
+        invalidate_watched_cache()
 
     summary = _unwrap_or_raise(
         summary,
@@ -1152,6 +1276,7 @@ async def remove_from_history(
 def register_sync_tools(
     mcp: FastMCP,
 ) -> tuple[
+    ToolHandler,
     ToolHandler,
     ToolHandler,
     ToolHandler,
@@ -1286,6 +1411,64 @@ def register_sync_tools(
         ] = False,
     ) -> str:
         return await fetch_user_collection(collection_type, include_metadata)
+
+    @mcp.tool(
+        name="unwatched_in_collection",
+        description=(
+            "List movies in the user's Trakt collection that they have not "
+            "watched, in one call. Compares the whole collection with the "
+            "whole watched set, so do not page through either by hand. "
+            "Filter by runtime, genre and Trakt community rating, sort, and "
+            "limit the result. Each line shows title, runtime, genres, rating "
+            "and resolution. Requires OAuth authentication."
+        ),
+    )
+    async def unwatched_in_collection_tool(
+        collection_type: Annotated[
+            Literal["movies"],
+            Field(description=UNWATCHED_TYPE_DESCRIPTION),
+        ] = "movies",
+        min_runtime: Annotated[
+            int | None,
+            Field(ge=0, description=UNWATCHED_MIN_RUNTIME_DESCRIPTION),
+        ] = None,
+        max_runtime: Annotated[
+            int | None,
+            Field(ge=0, description=UNWATCHED_MAX_RUNTIME_DESCRIPTION),
+        ] = None,
+        genres_include: Annotated[
+            list[str] | None,
+            Field(description=UNWATCHED_GENRES_INCLUDE_DESCRIPTION),
+        ] = None,
+        genres_exclude: Annotated[
+            list[str] | None,
+            Field(description=UNWATCHED_GENRES_EXCLUDE_DESCRIPTION),
+        ] = None,
+        min_trakt_rating: Annotated[
+            float | None,
+            Field(ge=0, le=10, description=UNWATCHED_MIN_RATING_DESCRIPTION),
+        ] = None,
+        sort: Annotated[
+            UnwatchedSort,
+            Field(description=UNWATCHED_SORT_DESCRIPTION),
+        ] = "rating",
+        limit: Annotated[
+            int,
+            Field(
+                ge=1, le=UNWATCHED_MAX_LIMIT, description=UNWATCHED_LIMIT_DESCRIPTION
+            ),
+        ] = UNWATCHED_DEFAULT_LIMIT,
+    ) -> str:
+        return await unwatched_in_collection(
+            collection_type,
+            min_runtime,
+            max_runtime,
+            genres_include,
+            genres_exclude,
+            min_trakt_rating,
+            sort,
+            limit,
+        )
 
     @mcp.tool(
         name="fetch_user_watchlist",
@@ -1447,6 +1630,7 @@ def register_sync_tools(
         add_user_ratings_tool,
         remove_user_ratings_tool,
         fetch_user_collection_tool,
+        unwatched_in_collection_tool,
         fetch_user_watchlist_tool,
         add_user_watchlist_tool,
         remove_user_watchlist_tool,
