@@ -2,9 +2,9 @@
 # Endpoints on :8080: /mcp (Streamable HTTP), /sse (deprecated), /healthz
 
 # Stage 1: resolve and install locked dependencies with uv.
-FROM python:3.15-slim AS build
+FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928 AS build
 
-COPY --from=ghcr.io/astral-sh/uv:0.13.9 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.13.9@sha256:d3b601f0c7b118bc1753febf7c41cc80981df678445e0254284eecf84db79a7d /uv /uvx /bin/
 
 WORKDIR /app
 ENV UV_NO_DEV=1 \
@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-editable
 
 # Stage 2: runtime with the virtualenv only (no uv, no build tooling).
-FROM python:3.15-slim
+FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928
 
 ARG VERSION=dev
 ARG REPO_URL=https://github.com/wwiens/trakt_mcpserver
