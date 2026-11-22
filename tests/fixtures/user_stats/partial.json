@@ -1,0 +1,6 @@
+{
+  "movies": {"watched": 10, "minutes": 1200},
+  "shows": {"watched": 2},
+  "network": {"friends": 0, "followers": 1, "following": 1},
+  "ratings": {"total": 0, "distribution": {"8": 1.5}}
+}

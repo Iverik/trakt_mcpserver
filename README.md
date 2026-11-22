@@ -514,6 +514,11 @@ fetch_user_watched_shows(limit=0)  # 0 for all shows
 # Fetch movies watched by the authenticated user
 fetch_user_watched_movies(limit=0)  # 0 for all movies
 
+# Fetch your overall stats: watched/collected/rated counts, hours watched,
+# network counts and the ratings distribution. Trakt only precomputes stats
+# for some (VIP) accounts; others get a "no stats (204 No Content)" notice.
+fetch_user_stats()
+
 # Fetch user's personal ratings with pagination support
 fetch_user_ratings(rating_type="movies", rating=10, page=1)
 

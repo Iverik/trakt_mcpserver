@@ -21,6 +21,7 @@ class TestUserEndpoints:
         user_endpoints: list[EndpointKey] = [
             "user_watched_shows",
             "user_watched_movies",
+            "user_stats",
         ]
         for endpoint in user_endpoints:
             assert endpoint in USER_ENDPOINTS
@@ -31,10 +32,13 @@ class TestUserEndpoints:
         """Test user endpoint URL formats."""
         assert USER_ENDPOINTS["user_watched_shows"] == "/sync/watched/shows"
         assert USER_ENDPOINTS["user_watched_movies"] == "/sync/watched/movies"
+        assert USER_ENDPOINTS["user_stats"] == "/users/me/stats"
 
     def test_sync_endpoints_contain_sync(self) -> None:
         """Test sync endpoints contain 'sync' in path."""
         for endpoint_key, endpoint_url in USER_ENDPOINTS.items():
+            if endpoint_key == "user_stats":
+                continue
             assert "sync" in endpoint_url, (
                 f"User endpoint {endpoint_key} should contain 'sync'"
             )

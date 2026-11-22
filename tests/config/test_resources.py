@@ -230,6 +230,7 @@ class TestToolNames:
         user_tools = [
             "fetch_user_watched_shows",
             "fetch_user_watched_movies",
+            "fetch_user_stats",
             "checkin_to_show",
         ]
         for tool in user_tools:

@@ -106,4 +106,5 @@ EndpointKey = Literal[
     # User
     "user_watched_shows",
     "user_watched_movies",
+    "user_stats",
 ]

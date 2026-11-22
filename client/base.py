@@ -229,8 +229,14 @@ class BaseClient:
         params: dict[str, Any] | None = None,
         data: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
+        allow_empty: bool = False,
     ) -> Any:
-        """Make an HTTP request to the Trakt API."""
+        """Make an HTTP request to the Trakt API.
+
+        Args:
+            allow_empty: Return None for a 204 or empty body instead of failing
+                to decode it. Only for endpoints documented to answer 204.
+        """
         request_headers = self._prepare_request(endpoint, method)
         if headers:
             request_headers.update(headers)
@@ -263,6 +269,8 @@ class BaseClient:
                     timeout=self.REQUEST_TIMEOUT,
                 )
             response.raise_for_status()
+            if allow_empty and (response.status_code == 204 or not response.content):
+                return None
             return response.json()
         finally:
             if should_close:

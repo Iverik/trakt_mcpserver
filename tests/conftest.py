@@ -1,10 +1,11 @@
+import json
 import os
 import sys
 import time
 from collections.abc import Generator
 from contextlib import suppress
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -240,3 +241,19 @@ def sample_trending_movies():
             },
         },
     ]
+
+
+@pytest.fixture
+def user_stats_full() -> dict[str, Any]:
+    """Recorded-shape /users/me/stats response with every field present."""
+    return json.loads(
+        (Path(__file__).parent / "fixtures/user_stats/full.json").read_text()
+    )
+
+
+@pytest.fixture
+def user_stats_partial() -> dict[str, Any]:
+    """Sparse /users/me/stats response (most sections missing)."""
+    return json.loads(
+        (Path(__file__).parent / "fixtures/user_stats/partial.json").read_text()
+    )

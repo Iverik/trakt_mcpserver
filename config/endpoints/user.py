@@ -9,4 +9,5 @@ USER_ENDPOINTS: Final[Mapping[EndpointKey, str]] = {
     # User endpoints
     "user_watched_shows": "/sync/watched/shows",
     "user_watched_movies": "/sync/watched/movies",
+    "user_stats": "/users/me/stats",
 }

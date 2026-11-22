@@ -19,6 +19,7 @@ from utils.api.error_types import AuthenticationRequiredError
 type Fetcher[T] = Callable[[], Awaitable[list[T] | str]]
 type Formatter[T] = Callable[[list[T]], str]
 type ToolHandler = Callable[[int | None], Awaitable[str]]
+type StatsToolHandler = Callable[[], Awaitable[str]]
 
 
 def _validate_and_normalize_limit(value: int | None, *, operation: str) -> int:
@@ -149,7 +150,32 @@ async def fetch_user_watched_movies(limit: int | None = 0) -> str:
     )
 
 
-def register_user_tools(mcp: FastMCP) -> tuple[ToolHandler, ToolHandler]:
+async def fetch_user_stats() -> str:
+    """Fetch watch, collection and rating stats for the authenticated user.
+
+    Returns:
+        Markdown summary of the user's stats, or a notice when Trakt has none
+    """
+    client = get_client(UserClient)
+    if not await client.ensure_authenticated():
+        raise AuthenticationRequiredError(
+            action="access your stats",
+            auth_url=AUTH_VERIFICATION_URL,
+        )
+    stats = await client.get_user_stats()
+    if isinstance(stats, str):
+        raise ToolErrors.handle_api_string_error(
+            resource_type="fetch_user_stats",
+            resource_id="authenticated_user",
+            error_message=stats,
+            operation="fetch_user_stats",
+        )
+    return UserFormatters.format_user_stats(stats)
+
+
+def register_user_tools(
+    mcp: FastMCP,
+) -> tuple[ToolHandler, ToolHandler, StatsToolHandler]:
     """Register user tools with the MCP server.
 
     Returns:
@@ -208,5 +234,30 @@ def register_user_tools(mcp: FastMCP) -> tuple[ToolHandler, ToolHandler]:
         """MCP tool: fetch movies watched by the authenticated user."""
         return await fetch_user_watched_movies(limit)
 
+    @mcp.tool(
+        name="fetch_user_stats",
+        description=(
+            "Fetch the authenticated user's overall Trakt stats: movies, shows, "
+            "episodes and seasons watched, collected and rated, hours watched, "
+            "social counts and the 1-10 ratings distribution. "
+            "Use for: 'how much have I watched?', 'my Trakt stats', "
+            "'how many hours of TV have I watched?'. "
+            "Trakt only precomputes stats for some (VIP) accounts and answers "
+            "204 No Content otherwise; the tool then says so. "
+            "Requires OAuth authentication."
+        ),
+    )
+    @ToolErrors.with_error_handling(
+        operation="fetch_user_stats_tool",
+        tool="fetch_user_stats",
+    )
+    async def fetch_user_stats_tool() -> str:
+        """MCP tool: fetch stats for the authenticated user."""
+        return await fetch_user_stats()
+
     # Return handlers for type checker visibility
-    return (fetch_user_watched_shows_tool, fetch_user_watched_movies_tool)
+    return (
+        fetch_user_watched_shows_tool,
+        fetch_user_watched_movies_tool,
+        fetch_user_stats_tool,
+    )
