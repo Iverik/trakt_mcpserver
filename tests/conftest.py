@@ -8,12 +8,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 from dotenv import load_dotenv
 
 load_dotenv()
 
 if TYPE_CHECKING:
+    from client.base import BaseClient
     from client.sync.client import SyncClient
     from models.auth.auth import TraktAuthToken
 
@@ -71,6 +73,51 @@ def trakt_env() -> Generator[None, None, None]:  # pyright: ignore[reportUnusedF
         {"TRAKT_CLIENT_ID": "test_id", "TRAKT_CLIENT_SECRET": "test_secret"},
     ):
         yield
+
+
+class MockTraktApi:
+    """Scripted Trakt API served through ``httpx.MockTransport``.
+
+    Queue responses with ``respond``; every request the client sends is kept
+    in ``requests`` so tests can assert on method, URL, query and JSON body.
+    """
+
+    def __init__(self) -> None:
+        self.requests: list[httpx.Request] = []
+        self._responses: list[httpx.Response] = []
+
+    def respond(
+        self,
+        status: int,
+        body: object = None,
+        headers: dict[str, str] | None = None,
+    ) -> None:
+        """Queue the next response."""
+        if body is None:
+            self._responses.append(httpx.Response(status, headers=headers))
+        else:
+            self._responses.append(httpx.Response(status, json=body, headers=headers))
+
+    def request_json(self, index: int = 0) -> object:
+        """Return the decoded JSON body of a recorded request."""
+        return json.loads(self.requests[index].content)
+
+    def install(self, client: "BaseClient") -> None:
+        """Route a client's HTTP calls to this scripted API."""
+        client._client = httpx.AsyncClient(  # pyright: ignore[reportPrivateUsage]
+            base_url="https://api.trakt.tv",
+            transport=httpx.MockTransport(self._handle),
+        )
+
+    def _handle(self, request: httpx.Request) -> httpx.Response:
+        self.requests.append(request)
+        return self._responses.pop(0)
+
+
+@pytest.fixture
+def mock_trakt_api() -> MockTraktApi:
+    """Scripted Trakt API; see ``MockTraktApi``."""
+    return MockTraktApi()
 
 
 @pytest.fixture

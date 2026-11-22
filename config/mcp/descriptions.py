@@ -50,6 +50,13 @@ __all__: Final[list[str]] = [
     "IGNORE_WATCHLISTED_DESCRIPTION",
     "LANGUAGE_DESCRIPTION",
     "LIMIT_DESCRIPTION",
+    "LIST_DESCRIPTION_DESCRIPTION",
+    "LIST_ID_DESCRIPTION",
+    "LIST_ITEMS_DESCRIPTION",
+    "LIST_ITEM_TYPE_DESCRIPTION",
+    "LIST_NAME_DESCRIPTION",
+    "LIST_PRIVACY_DESCRIPTION",
+    "LIST_REMOVE_ITEMS_DESCRIPTION",
     "LIST_SORT_DESCRIPTION",
     "LIST_TYPE_DESCRIPTION",
     "MAX_PAGES_DESCRIPTION",
@@ -350,6 +357,32 @@ HISTORY_REMOVE_ITEMS_DESCRIPTION: Final[str] = (
     "List of items to remove from history. Each item must include "
     "either an identifier (trakt_id, slug, imdb_id, tmdb_id, tvdb_id) "
     "or both 'title' and 'year'"
+)
+
+# Personal list descriptions
+LIST_ID_DESCRIPTION: Final[str] = (
+    "Trakt list ID or slug of one of your own lists "
+    "(e.g., '2234573', 'weekend-watch'). Use fetch_user_lists to find it"
+)
+LIST_NAME_DESCRIPTION: Final[str] = "Name of the new list (e.g., 'Weekend Watch')"
+LIST_DESCRIPTION_DESCRIPTION: Final[str] = "Optional description for the new list"
+LIST_PRIVACY_DESCRIPTION: Final[str] = (
+    "Who can see the list: 'private' (only you, the default), "
+    "'link' (anyone with the share link), 'friends', or 'public'"
+)
+LIST_ITEM_TYPE_DESCRIPTION: Final[str] = (
+    "Type of every item in this call: 'movies' or 'shows'. Make one call per type"
+)
+LIST_ITEMS_DESCRIPTION: Final[str] = (
+    "List of items to add to the list, all of the type given by item_type. "
+    "Each item must include either an identifier (trakt_id, slug, imdb_id, "
+    "tmdb_id, tvdb_id) or both 'title' and 'year'. "
+    'Example: [{"trakt_id": "120"}, {"imdb_id": "tt0468569"}]'
+)
+LIST_REMOVE_ITEMS_DESCRIPTION: Final[str] = (
+    "List of items to remove from the list, all of the type given by item_type. "
+    "Each item must include at least one identifier (trakt_id, slug, imdb_id, "
+    "tmdb_id, tvdb_id); title and year alone are not accepted for removal"
 )
 
 # Shared parameter descriptions

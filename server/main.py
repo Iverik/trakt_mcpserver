@@ -18,6 +18,7 @@ from .calendars import register_calendar_tools
 from .checkin import register_checkin_tools
 from .comments import register_comment_tools
 from .episodes import register_episode_tools
+from .lists import register_lists_tools
 from .movies import register_movie_resources, register_movie_tools
 from .people import register_people_tools
 from .progress import register_progress_tools
@@ -56,6 +57,7 @@ REGISTRATIONS: Final[tuple[Callable[[FastMCP], object], ...]] = (
     register_recommendation_tools,
     register_season_tools,
     register_episode_tools,
+    register_lists_tools,
     register_people_tools,
     register_basic_prompts,
 )

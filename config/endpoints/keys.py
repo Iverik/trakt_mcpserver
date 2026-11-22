@@ -36,6 +36,10 @@ EndpointKey = Literal[
     "episode_stats",
     "episode_watching",
     "episode_videos",
+    # Lists
+    "user_lists",
+    "user_list_items",
+    "user_list_items_remove",
     # Movies
     "movies_trending",
     "movies_popular",

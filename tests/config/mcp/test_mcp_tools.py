@@ -6,6 +6,7 @@ from config.mcp.tools import (
     CHECKIN_TOOLS,
     COMMENT_TOOLS,
     EPISODE_TOOLS,
+    LISTS_TOOLS,
     MOVIE_TOOLS,
     PEOPLE_TOOLS,
     PROGRESS_TOOLS,
@@ -72,6 +73,18 @@ class TestToolNames:
             "checkin_to_show",
         ]
         for tool in user_tools:
+            assert tool in TOOL_NAMES
+
+    def test_list_tools_exist(self) -> None:
+        """Test personal list tools are present."""
+        for tool in (
+            "fetch_user_lists",
+            "create_user_list",
+            "fetch_user_list_items",
+            "add_user_list_items",
+            "remove_user_list_items",
+        ):
+            assert tool in LISTS_TOOLS
             assert tool in TOOL_NAMES
 
     def test_comment_tools_exist(self) -> None:
@@ -155,6 +168,7 @@ class TestToolNames:
             "CHECKIN_TOOLS": CHECKIN_TOOLS,
             "COMMENT_TOOLS": COMMENT_TOOLS,
             "EPISODE_TOOLS": EPISODE_TOOLS,
+            "LISTS_TOOLS": LISTS_TOOLS,
             "PROGRESS_TOOLS": PROGRESS_TOOLS,
             "RECOMMENDATIONS_TOOLS": RECOMMENDATIONS_TOOLS,
             "SEARCH_TOOLS": SEARCH_TOOLS,
@@ -179,6 +193,7 @@ class TestToolNames:
             | CHECKIN_TOOLS
             | COMMENT_TOOLS
             | EPISODE_TOOLS
+            | LISTS_TOOLS
             | PROGRESS_TOOLS
             | RECOMMENDATIONS_TOOLS
             | SEARCH_TOOLS

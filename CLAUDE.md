@@ -25,6 +25,7 @@ server/           # MCP server modules by domain
 ├── seasons/      # Season-specific tools
 ├── movies/       # Movie-specific tools/resources
 ├── user/         # User data tools/resources
+├── lists/        # Personal list tools
 ├── comments/     # Comment tools
 ├── search/       # Search tools
 ├── checkin/      # Check-in tools
@@ -37,6 +38,7 @@ client/           # HTTP clients by domain
 ├── seasons/      # Season API client
 ├── movies/       # Movie API client
 ├── comments/     # Comments API client
+├── lists/        # Personal lists API client
 ├── user/         # User API client
 ├── search/       # Search API client
 └── checkin/      # Check-in API client
@@ -44,6 +46,7 @@ client/           # HTTP clients by domain
 models/           # Pydantic models by domain
 ├── auth/         # Authentication models
 ├── formatters/   # Domain-specific formatters
+├── lists/        # Personal list models
 ├── movies/       # Movie models
 ├── shows/        # Show models
 └── user/         # User models

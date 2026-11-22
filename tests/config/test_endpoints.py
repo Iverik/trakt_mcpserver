@@ -188,6 +188,7 @@ class TestEndpointUrlFormats:
         from config.endpoints.checkin import CHECKIN_ENDPOINTS
         from config.endpoints.comments import COMMENTS_ENDPOINTS
         from config.endpoints.episodes import EPISODES_ENDPOINTS
+        from config.endpoints.lists import LISTS_ENDPOINTS
         from config.endpoints.movies import MOVIES_ENDPOINTS
         from config.endpoints.people import PEOPLE_ENDPOINTS
         from config.endpoints.progress import PROGRESS_ENDPOINTS
@@ -207,6 +208,7 @@ class TestEndpointUrlFormats:
             **PROGRESS_ENDPOINTS,
             **COMMENTS_ENDPOINTS,
             **EPISODES_ENDPOINTS,
+            **LISTS_ENDPOINTS,
             **SEARCH_ENDPOINTS,
             **CALENDARS_ENDPOINTS,
             **CHECKIN_ENDPOINTS,

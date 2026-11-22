@@ -7,6 +7,7 @@ from .calendars import CALENDAR_TOOLS
 from .checkin import CHECKIN_TOOLS
 from .comments import COMMENT_TOOLS
 from .episodes import EPISODE_TOOLS
+from .lists import LISTS_TOOLS
 from .movies import MOVIE_TOOLS
 from .people import PEOPLE_TOOLS
 from .progress import PROGRESS_TOOLS
@@ -27,6 +28,7 @@ TOOL_NAMES: Final[frozenset[str]] = (
     | CHECKIN_TOOLS
     | COMMENT_TOOLS
     | EPISODE_TOOLS
+    | LISTS_TOOLS
     | PROGRESS_TOOLS
     | RECOMMENDATIONS_TOOLS
     | SEARCH_TOOLS
@@ -40,6 +42,7 @@ __all__ = [
     "CHECKIN_TOOLS",
     "COMMENT_TOOLS",
     "EPISODE_TOOLS",
+    "LISTS_TOOLS",
     "MOVIE_TOOLS",
     "PEOPLE_TOOLS",
     "PROGRESS_TOOLS",
