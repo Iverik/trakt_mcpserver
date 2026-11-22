@@ -607,6 +607,12 @@ fetch_movie_recommendations(limit=10)
 # Include movies you've already collected or watchlisted
 fetch_movie_recommendations(limit=10, ignore_collected=False, ignore_watchlisted=False)
 
+# Only movies up to 100 minutes, in comedy or science fiction (match any genre).
+# Genre slugs come from Trakt's genres list for movies (GET /genres/movies).
+# Filters run after the fetch (up to 100 are fetched, then trimmed to limit), so
+# fewer than limit may come back; the output says how many were filtered out.
+fetch_movie_recommendations(limit=10, max_runtime=100, genres_include=["comedy", "science-fiction"])
+
 # Get personalized show recommendations
 fetch_show_recommendations(limit=10)
 

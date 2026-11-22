@@ -5,20 +5,27 @@ from collections.abc import Awaitable, Callable
 from typing import Annotated
 
 from mcp.server.fastmcp import FastMCP
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from client.pool import get_client
 from client.recommendations import RecommendationsClient
-from config.api import DEFAULT_LIMIT
+from config.api import DEFAULT_FETCH_ALL_LIMIT, DEFAULT_LIMIT
 from config.mcp.descriptions import (
+    GENRES_INCLUDE_DESCRIPTION,
     IGNORE_COLLECTED_DESCRIPTION,
     IGNORE_WATCHLISTED_DESCRIPTION,
+    MAX_RUNTIME_DESCRIPTION,
     MOVIE_ID_DESCRIPTION,
     RECOMMENDATIONS_LIMIT_DESCRIPTION,
     SHOW_ID_DESCRIPTION,
 )
 from models.formatters.recommendations import RecommendationFormatters
 from server.base import ToolErrors
+from server.recommendations.filters import (
+    describe_filtering,
+    filter_movies,
+    normalize_genre_slugs,
+)
 from utils.api.errors import handle_api_errors_func
 from utils.api.request_context import set_tool_context
 from utils.validators import StrippedStr
@@ -45,6 +52,20 @@ class RecommendationParams(BaseModel):
         default=True,
         description="Filter out items the user has already watchlisted",
     )
+    max_runtime: int | None = Field(
+        default=None, ge=1, description="Maximum movie runtime in minutes"
+    )
+    genres_include: list[str] | None = Field(
+        default=None, description="Trakt genre slugs; a movie matches any of them"
+    )
+
+    @field_validator("genres_include")
+    @classmethod
+    def _normalize_genres(cls, v: list[str] | None) -> list[str] | None:
+        """Lowercase and validate genre slugs; an empty list means no filter."""
+        if not v:
+            return None
+        return normalize_genre_slugs(v)
 
 
 class HideRecommendationParams(BaseModel):
@@ -60,16 +81,24 @@ async def fetch_movie_recommendations(
     limit: int = DEFAULT_LIMIT,
     ignore_collected: bool = True,
     ignore_watchlisted: bool = True,
+    max_runtime: int | None = None,
+    genres_include: list[str] | None = None,
 ) -> str:
     """Fetch personalized movie recommendations from Trakt.
 
     Note: The Trakt recommendations API does not support pagination.
     Use limit (max 100) to control the number of results.
 
+    When max_runtime or genres_include is set, the request uses extended=full
+    and fetches the API maximum (100), filters locally, then trims to limit.
+    The output says how many were filtered out.
+
     Args:
         limit: Number of results to return (max 100).
         ignore_collected: Filter out movies user has collected.
         ignore_watchlisted: Filter out movies user has watchlisted.
+        max_runtime: Keep only movies up to this many minutes.
+        genres_include: Keep only movies matching any of these genre slugs.
 
     Returns:
         Formatted markdown with movie recommendations.
@@ -82,13 +111,17 @@ async def fetch_movie_recommendations(
         limit=limit,
         ignore_collected=ignore_collected,
         ignore_watchlisted=ignore_watchlisted,
+        max_runtime=max_runtime,
+        genres_include=genres_include,
     )
+    filtering = params.max_runtime is not None or params.genres_include is not None
 
     client = get_client(RecommendationsClient)
     recommendations = await client.get_movie_recommendations(
-        limit=params.limit,
+        limit=DEFAULT_FETCH_ALL_LIMIT if filtering else params.limit,
         ignore_collected=params.ignore_collected,
         ignore_watchlisted=params.ignore_watchlisted,
+        extended=filtering,
     )
 
     # Handle transitional case where API returns error strings
@@ -100,7 +133,22 @@ async def fetch_movie_recommendations(
             operation="fetch_movie_recommendations",
         )
 
-    return RecommendationFormatters.format_movie_recommendations(recommendations)
+    if not filtering:
+        return RecommendationFormatters.format_movie_recommendations(recommendations)
+
+    result = filter_movies(
+        recommendations,
+        max_runtime=params.max_runtime,
+        genres_include=params.genres_include,
+    )
+    shown = result.kept[: params.limit]
+    note = describe_filtering(
+        result,
+        shown=len(shown),
+        max_runtime=params.max_runtime,
+        genres_include=params.genres_include,
+    )
+    return RecommendationFormatters.format_movie_recommendations(shown, note)
 
 
 @handle_api_errors_func
@@ -255,7 +303,11 @@ def register_recommendation_tools(
         description=(
             "Fetch personalized movie recommendations from Trakt based on your "
             "viewing history. Requires OAuth authentication. Use limit parameter "
-            "(max 100) to control number of results."
+            "(max 100) to control number of results. Optional max_runtime "
+            "(minutes) and genres_include (Trakt genre slugs, match any; the "
+            "list is at GET /genres/movies) filter after fetching, so fewer "
+            "than limit may be returned; the output states how many were "
+            "filtered out."
         ),
     )
     async def fetch_movie_recommendations_tool(
@@ -270,10 +322,20 @@ def register_recommendation_tools(
             bool,
             Field(description=IGNORE_WATCHLISTED_DESCRIPTION),
         ] = True,
+        max_runtime: Annotated[
+            int | None, Field(ge=1, description=MAX_RUNTIME_DESCRIPTION)
+        ] = None,
+        genres_include: Annotated[
+            list[str] | None, Field(description=GENRES_INCLUDE_DESCRIPTION)
+        ] = None,
     ) -> str:
         """MCP tool: fetch personalized movie recommendations."""
         return await fetch_movie_recommendations(
-            limit, ignore_collected, ignore_watchlisted
+            limit,
+            ignore_collected,
+            ignore_watchlisted,
+            max_runtime,
+            genres_include,
         )
 
     @mcp.tool(

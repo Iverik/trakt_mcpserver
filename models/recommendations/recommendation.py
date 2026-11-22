@@ -37,6 +37,12 @@ class TraktRecommendedMovie(BaseModel):
     title: str
     year: int | None = None
     ids: TraktIds = Field(description="Various IDs (trakt, slug, imdb, tmdb)")
+    runtime: int | None = Field(
+        default=None, description="Runtime in minutes (only with extended=full)"
+    )
+    genres: list[str] | None = Field(
+        default=None, description="Genre slugs (only with extended=full)"
+    )
     favorited_by: Annotated[
         list[FavoritedByEntry],
         Field(

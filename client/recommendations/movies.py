@@ -20,6 +20,7 @@ class MovieRecommendationsClient(AuthClient):
         limit: int = DEFAULT_LIMIT,
         ignore_collected: bool = False,
         ignore_watchlisted: bool = False,
+        extended: bool = False,
     ) -> list[TraktRecommendedMovie]:
         """Fetch personalized movie recommendations.
 
@@ -30,6 +31,7 @@ class MovieRecommendationsClient(AuthClient):
             limit: Number of results to return (max 100).
             ignore_collected: Filter out movies user has collected.
             ignore_watchlisted: Filter out movies user has watchlisted.
+            extended: Request ``extended=full`` (adds runtime and genres).
 
         Returns:
             List of movie recommendations.
@@ -47,6 +49,8 @@ class MovieRecommendationsClient(AuthClient):
             params["ignore_collected"] = "true"
         if ignore_watchlisted:
             params["ignore_watchlisted"] = "true"
+        if extended:
+            params["extended"] = "full"
 
         return await self._make_typed_list_request(
             endpoint=endpoint,

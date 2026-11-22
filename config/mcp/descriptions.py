@@ -26,6 +26,7 @@ __all__: Final[list[str]] = [
     "EMBED_MARKDOWN_DESCRIPTION",
     "EPISODE_DESCRIPTION",
     "EXTENDED_DESCRIPTION",
+    "GENRES_INCLUDE_DESCRIPTION",
     "GUEST_STARS_DESCRIPTION",
     "HISTORY_END_AT_DESCRIPTION",
     "HISTORY_ITEMS_DESCRIPTION",
@@ -42,6 +43,7 @@ __all__: Final[list[str]] = [
     "LIST_TYPE_DESCRIPTION",
     "MAX_PAGES_DESCRIPTION",
     "MAX_RATING_DESCRIPTION",
+    "MAX_RUNTIME_DESCRIPTION",
     "MIN_RATING_DESCRIPTION",
     "MOVIE_ID_DESCRIPTION",
     "PAGE_DESCRIPTION",
@@ -174,6 +176,16 @@ IGNORE_COLLECTED_DESCRIPTION: Final[str] = (
 )
 IGNORE_WATCHLISTED_DESCRIPTION: Final[str] = (
     "Filter out items the user has already watchlisted"
+)
+
+GENRES_INCLUDE_DESCRIPTION: Final[str] = (
+    "Only keep movies matching ANY of these Trakt genre slugs, e.g. "
+    "['comedy', 'science-fiction'] (case-insensitive). Slugs come from the Trakt "
+    "genres list for movies (GET /genres/movies)"
+)
+MAX_RUNTIME_DESCRIPTION: Final[str] = (
+    "Only keep movies with a runtime of at most this many minutes. Movies with "
+    "no runtime on Trakt are dropped"
 )
 
 # Content type descriptions

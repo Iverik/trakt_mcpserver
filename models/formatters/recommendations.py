@@ -39,11 +39,13 @@ class RecommendationFormatters:
     @staticmethod
     def format_movie_recommendations(
         movies: list[TraktRecommendedMovie],
+        filter_note: str | None = None,
     ) -> str:
         """Format movie recommendations for MCP response.
 
         Args:
             movies: List of movie recommendations
+            filter_note: Optional line describing client-side filtering
 
         Returns:
             Formatted markdown text with movie recommendations
@@ -52,14 +54,20 @@ class RecommendationFormatters:
         lines.append("")
         lines.append("_Personalized recommendations based on your viewing history_")
         lines.append("")
+        if filter_note:
+            lines.append(filter_note)
+            lines.append("")
 
         if not movies:
-            empty_msg = (
-                "No recommendations available."
-                " Watch more content to improve"
-                " recommendations!"
-            )
-            lines.append(empty_msg)
+            if filter_note:
+                lines.append("No recommendations matched the filters.")
+            else:
+                empty_msg = (
+                    "No recommendations available."
+                    " Watch more content to improve"
+                    " recommendations!"
+                )
+                lines.append(empty_msg)
             return "\n".join(lines)
 
         lines.extend(
