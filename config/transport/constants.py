@@ -12,6 +12,7 @@ ENV_PORT: Final[str] = "TRAKT_MCP_PORT"
 ENV_ALLOWED_ORIGINS: Final[str] = "TRAKT_MCP_ALLOWED_ORIGINS"
 ENV_ALLOWED_HOSTS: Final[str] = "TRAKT_MCP_ALLOWED_HOSTS"
 ENV_STATELESS: Final[str] = "TRAKT_MCP_STATELESS"
+ENV_LEGACY_SSE: Final[str] = "TRAKT_MCP_LEGACY_SSE"
 
 # Loopback by default: exposing the server beyond the machine is opt-in.
 DEFAULT_HOST: Final[str] = "127.0.0.1"

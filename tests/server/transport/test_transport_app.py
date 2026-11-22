@@ -13,6 +13,8 @@ from server.main import (
     idle_lifespan,
 )
 from server.transport.app import build_app
+from server.transport.deprecation import SseDeprecationMiddleware
+from server.transport.origin import OriginGuardMiddleware
 from server.transport.settings import TransportSettings
 
 INITIALIZE = {
@@ -167,3 +169,41 @@ async def test_loopback_bind_defaults_to_loopback_hosts_only() -> None:
 
     assert local.status_code == 200
     assert remote.status_code == 421
+
+
+@pytest.mark.asyncio
+async def test_legacy_sse_off_unmounts_sse_routes() -> None:
+    app = make_app(stateless=True, legacy_sse=False)
+    paths = {route.path for route in app.routes if isinstance(route, Route | Mount)}
+
+    assert {"/mcp", "/healthz"} <= paths
+    assert not paths & {"/sse", "/messages"}
+
+    async with serving(app) as client:
+        sse = await client.get("/sse")
+        messages = await client.post("/messages/?session_id=x", json={})
+        mcp = await client.post("/mcp", json=INITIALIZE, headers=MCP_HEADERS)
+        health = await client.get("/healthz")
+
+    assert [r.status_code for r in (sse, messages, mcp, health)] == [404, 404, 200, 200]
+
+
+@pytest.mark.asyncio
+async def test_legacy_sse_off_still_guards_origin_on_mcp() -> None:
+    headers = {**MCP_HEADERS, "Origin": "https://evil.example"}
+
+    async with serving(make_app(stateless=True, legacy_sse=False)) as client:
+        response = await client.post("/mcp", json=INITIALIZE, headers=headers)
+
+    assert response.status_code == 403
+
+
+def test_legacy_sse_off_has_no_deprecation_middleware() -> None:
+    off = make_app(legacy_sse=False)
+    on = make_app(legacy_sse=True)
+
+    assert [m.cls for m in off.user_middleware] == [OriginGuardMiddleware]
+    assert [m.cls for m in on.user_middleware] == [
+        OriginGuardMiddleware,
+        SseDeprecationMiddleware,
+    ]

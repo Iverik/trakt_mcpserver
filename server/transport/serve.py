@@ -14,11 +14,16 @@ _GRACEFUL_SHUTDOWN_SECONDS = 10
 
 def serve(app: Starlette, settings: TransportSettings) -> None:
     """Serve ``app`` until the process is stopped."""
+    note = (
+        "legacy SSE on /sse is deprecated"
+        if settings.legacy_sse
+        else "legacy SSE is off"
+    )
     logger.info(
-        "Serving Streamable HTTP on http://%s:%d/mcp"
-        + " (legacy SSE on /sse is deprecated)",
+        "Serving Streamable HTTP on http://%s:%d/mcp (%s)",
         settings.host,
         settings.port,
+        note,
     )
     uvicorn.run(
         app,

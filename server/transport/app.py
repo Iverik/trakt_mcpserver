@@ -1,4 +1,4 @@
-"""Build the single ASGI app serving Streamable HTTP, legacy SSE and /healthz."""
+"""Build the ASGI app serving Streamable HTTP, optional legacy SSE and /healthz."""
 
 import logging
 from collections.abc import AsyncGenerator
@@ -46,7 +46,7 @@ def _security(settings: TransportSettings) -> TransportSecuritySettings:
 
 
 def build_app(mcp: FastMCP, settings: TransportSettings) -> Starlette:
-    """Combine the SDK's Streamable HTTP and SSE apps with a health route.
+    """Combine the SDK's Streamable HTTP and (optionally) SSE apps with a health route.
 
     Args:
         mcp: Server built with a lifespan that does not close the shared HTTP
@@ -62,12 +62,30 @@ def build_app(mcp: FastMCP, settings: TransportSettings) -> Starlette:
     mcp.settings.transport_security = _security(settings)
 
     streamable = mcp.streamable_http_app()
-    sse = mcp.sse_app()
     routes: list[BaseRoute] = [
         Route(HEALTH_PATH, healthz, methods=["GET"]),
         *streamable.routes,
-        *sse.routes,
     ]
+    guarded = [mcp.settings.streamable_http_path]
+    middleware: list[Middleware] = []
+    if settings.legacy_sse:
+        routes.extend(mcp.sse_app().routes)
+        guarded += [mcp.settings.sse_path, mcp.settings.message_path.rstrip("/")]
+        middleware.append(
+            Middleware(
+                SseDeprecationMiddleware,
+                sse_path=mcp.settings.sse_path,
+                streamable_path=mcp.settings.streamable_http_path,
+            )
+        )
+    middleware.insert(
+        0,
+        Middleware(
+            OriginGuardMiddleware,
+            allowed_origins=settings.allowed_origins,
+            guarded_prefixes=tuple(guarded),
+        ),
+    )
 
     @asynccontextmanager
     async def lifespan(_app: Starlette) -> AsyncGenerator[None]:
@@ -77,23 +95,4 @@ def build_app(mcp: FastMCP, settings: TransportSettings) -> Starlette:
         finally:
             await shutdown_clients()
 
-    return Starlette(
-        routes=routes,
-        lifespan=lifespan,
-        middleware=[
-            Middleware(
-                OriginGuardMiddleware,
-                allowed_origins=settings.allowed_origins,
-                guarded_prefixes=(
-                    mcp.settings.streamable_http_path,
-                    mcp.settings.sse_path,
-                    mcp.settings.message_path.rstrip("/"),
-                ),
-            ),
-            Middleware(
-                SseDeprecationMiddleware,
-                sse_path=mcp.settings.sse_path,
-                streamable_path=mcp.settings.streamable_http_path,
-            ),
-        ],
-    )
+    return Starlette(routes=routes, lifespan=lifespan, middleware=middleware)

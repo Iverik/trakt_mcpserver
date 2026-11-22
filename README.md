@@ -985,7 +985,7 @@ One app serves everything:
 | Path | Purpose |
 |------|---------|
 | `/mcp` | **Streamable HTTP** (MCP spec 2025-03-26 and later). Point clients at `https://<host>/mcp` |
-| `/sse` and `/messages/` | Legacy HTTP+SSE, **deprecated**: the spec replaced it with Streamable HTTP. Kept for one release; every connection logs a warning. Migrate clients to `/mcp` |
+| `/sse` and `/messages/` | Legacy HTTP+SSE, **deprecated**: the spec replaced it with Streamable HTTP. On by default and every connection logs a warning. Migrate clients to `/mcp`, then turn it off with `TRAKT_MCP_LEGACY_SSE=false` or `--no-legacy-sse`: both paths then return `404` |
 | `/healthz` | Liveness check for Docker or a reverse proxy. Needs no MCP session or login and never calls Trakt |
 
 `/healthz` answers `200 {"status": "ok", "token": "present"}` (`"absent"` before the first login, `"expired"` once the access token has lapsed; neither is unhealthy, as logging in is a tool call). It answers `503 {"status": "error", "token": "unreadable"}` when the token file exists but cannot be read. It never returns token values.
@@ -997,6 +997,7 @@ One app serves everything:
 | `TRAKT_MCP_PORT` | `8080` | HTTP port. The `--port` flag wins |
 | `TRAKT_MCP_ALLOWED_ORIGINS` | empty | Comma-separated browser origins allowed to call `/mcp` and `/sse`, for example `https://claude.ai`. Matching is exact, so list each scheme and host |
 | `TRAKT_MCP_ALLOWED_HOSTS` | empty | Comma-separated `Host` header values to accept, for example `trakt.example.com,trakt:8080`. `host:*` matches any port |
+| `TRAKT_MCP_LEGACY_SSE` | `true` | `false` stops serving the deprecated `/sse` and `/messages/` routes (they return `404`) and skips their deprecation warning; `/mcp` and `/healthz` are unaffected. Accepts `true`/`false`, `1`/`0`, `yes`/`no`, any case; anything else is a usage error. The `--no-legacy-sse` flag wins |
 | `TRAKT_MCP_STATELESS` | `false` | `true` keeps no per-client session, so a restart never invalidates one. The Docker image sets it |
 
 **Origin check.** A request with no `Origin` header is accepted: that is any non-browser client, such as a reverse proxy or an OAuth gateway calling server to server. A request that carries one must match `TRAKT_MCP_ALLOWED_ORIGINS`, otherwise it gets `403`. With the variable empty, every request that carries an Origin is rejected. If claude.ai connects through a gateway that forwards its `Origin`, set `TRAKT_MCP_ALLOWED_ORIGINS=https://claude.ai`.

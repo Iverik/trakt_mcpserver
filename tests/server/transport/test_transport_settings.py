@@ -64,6 +64,41 @@ def test_invalid_env_exits(env: dict[str, str]) -> None:
         load_settings([], env)
 
 
+def test_legacy_sse_defaults_on() -> None:
+    assert load_settings([], {}).legacy_sse is True
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("true", True),
+        ("TRUE", True),
+        ("1", True),
+        ("yes", True),
+        ("Yes", True),
+        ("false", False),
+        ("False", False),
+        ("0", False),
+        ("no", False),
+        ("NO", False),
+    ],
+)
+def test_legacy_sse_env_spellings(value: str, expected: bool) -> None:
+    assert load_settings([], {"TRAKT_MCP_LEGACY_SSE": value}).legacy_sse is expected
+
+
+@pytest.mark.parametrize("value", ["", "maybe", "off", "2"])
+def test_legacy_sse_invalid_env_exits(value: str) -> None:
+    with pytest.raises(SystemExit):
+        load_settings([], {"TRAKT_MCP_LEGACY_SSE": value})
+
+
+def test_no_legacy_sse_flag_wins_over_env() -> None:
+    assert load_settings(["--no-legacy-sse"], {}).legacy_sse is False
+    env = {"TRAKT_MCP_LEGACY_SSE": "true"}
+    assert load_settings(["--no-legacy-sse"], env).legacy_sse is False
+
+
 def test_run_defaults_to_stdio(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[str] = []
 
