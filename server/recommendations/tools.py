@@ -26,6 +26,7 @@ from server.recommendations.filters import (
     filter_movies,
     normalize_genre_slugs,
 )
+from server.sync.cache import collected_movie_ids
 from utils.api.errors import handle_api_errors_func
 from utils.api.request_context import set_tool_context
 from utils.validators import StrippedStr
@@ -89,9 +90,13 @@ async def fetch_movie_recommendations(
     Note: The Trakt recommendations API does not support pagination.
     Use limit (max 100) to control the number of results.
 
-    When max_runtime or genres_include is set, the request uses extended=full
-    and fetches the API maximum (100), filters locally, then trims to limit.
-    The output says how many were filtered out.
+    Trakt ignores ignore_collected on this endpoint, so when it is true the
+    collected movies are also dropped locally, using the cached collection.
+    Whenever that or max_runtime or genres_include applies, the tool fetches
+    the API maximum (100), filters locally, then trims to limit (max_runtime
+    and genres_include also use extended=full). The output says how many were
+    filtered out. If the collection cannot be read, recommendations are still
+    returned with a note.
 
     Args:
         limit: Number of results to return (max 100).
@@ -114,14 +119,15 @@ async def fetch_movie_recommendations(
         max_runtime=max_runtime,
         genres_include=genres_include,
     )
-    filtering = params.max_runtime is not None or params.genres_include is not None
+    extended = params.max_runtime is not None or params.genres_include is not None
+    filtering = extended or params.ignore_collected
 
     client = get_client(RecommendationsClient)
     recommendations = await client.get_movie_recommendations(
         limit=DEFAULT_FETCH_ALL_LIMIT if filtering else params.limit,
         ignore_collected=params.ignore_collected,
         ignore_watchlisted=params.ignore_watchlisted,
-        extended=filtering,
+        extended=extended,
     )
 
     # Handle transitional case where API returns error strings
@@ -136,10 +142,24 @@ async def fetch_movie_recommendations(
     if not filtering:
         return RecommendationFormatters.format_movie_recommendations(recommendations)
 
+    collected_ids: frozenset[int] | None = None
+    collected_unavailable = False
+    collected_truncated = False
+    if params.ignore_collected:
+        try:
+            collected = await collected_movie_ids()
+        except Exception:  # recommendations still useful without it
+            logger.warning("Could not read the collection to filter recommendations")
+            collected_unavailable = True
+        else:
+            collected_ids = collected.ids
+            collected_truncated = collected.truncated
+
     result = filter_movies(
         recommendations,
         max_runtime=params.max_runtime,
         genres_include=params.genres_include,
+        collected_ids=collected_ids,
     )
     shown = result.kept[: params.limit]
     note = describe_filtering(
@@ -147,6 +167,9 @@ async def fetch_movie_recommendations(
         shown=len(shown),
         max_runtime=params.max_runtime,
         genres_include=params.genres_include,
+        collected_filtered=collected_ids is not None,
+        collected_unavailable=collected_unavailable,
+        collected_truncated=collected_truncated,
     )
     return RecommendationFormatters.format_movie_recommendations(shown, note)
 

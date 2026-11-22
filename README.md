@@ -680,6 +680,12 @@ fetch_movie_recommendations(limit=10)
 # Include movies you've already collected or watchlisted
 fetch_movie_recommendations(limit=10, ignore_collected=False, ignore_watchlisted=False)
 
+# Trakt ignores ignore_collected on this endpoint, so with it on (the default) the
+# server also drops movies in your collection itself, using the cached collection
+# (up to 100 are fetched, then trimmed to limit). The output counts them; if the
+# collection can't be read you still get recommendations, with a note. Movies only:
+# show recommendations rely on Trakt's own ignore_collected.
+
 # Only movies up to 100 minutes, in comedy or science fiction (match any genre).
 # Genre slugs come from Trakt's genres list for movies (GET /genres/movies).
 # Filters run after the fetch (up to 100 are fetched, then trimmed to limit), so

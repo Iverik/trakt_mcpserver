@@ -61,7 +61,6 @@ from models.formatters.sync_ratings import SyncRatingsFormatters
 from models.formatters.sync_seen import SyncSeenFormatters
 from models.formatters.sync_unwatched import SyncUnwatchedFormatters
 from models.formatters.sync_watchlist import SyncWatchlistFormatters
-from models.sync.collection import CollectionFetchResult
 from models.sync.history import (
     HistoryQueryParams,
     HistorySummary,
@@ -94,6 +93,7 @@ from server.sync.cache import (
     WATCHED_MOVIES_CACHE,
     invalidate_ratings_cache,
     invalidate_watched_cache,
+    load_collected_movies,
 )
 from server.sync.seen_lookup import lookup_seen
 from server.sync.unwatched_selection import select_unwatched
@@ -793,19 +793,6 @@ async def _require_auth(client: SyncClient, action: str) -> None:
         raise AuthenticationRequiredError(action=action)
 
 
-async def _load_collected_movies() -> CollectionFetchResult:
-    """Fetch the whole movie collection with runtime, genres, rating, metadata."""
-    result = await get_client(SyncClient).get_collection(
-        "movies", include_metadata=True, include_details=True
-    )
-    return _unwrap_or_raise(
-        result,
-        resource_type="user_movies_collection",
-        resource_id="user_collection_movies",
-        operation="unwatched_in_collection",
-    )
-
-
 async def _load_watched_movies() -> list[WatchedMovieItem]:
     """Fetch every watched movie, across all pages."""
     result = await get_client(SyncClient).get_watched_movies()
@@ -864,7 +851,7 @@ async def unwatched_in_collection(
     )
     logger.debug("unwatched_in_collection called with sort=%s", query.sort)
     await _require_auth(get_client(SyncClient), "check your collection")
-    collected = await COLLECTED_MOVIES_CACHE.get_or_load(_load_collected_movies)
+    collected = await COLLECTED_MOVIES_CACHE.get_or_load(load_collected_movies)
     watched = await WATCHED_MOVIES_CACHE.get_or_load(_load_watched_movies)
     selection = select_unwatched(
         collected.items,

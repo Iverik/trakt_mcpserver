@@ -85,3 +85,24 @@ def test_describe_filtering_reports_counts() -> None:
     assert "fetching 5 recommendations" in note
     assert "4 filtered out (2 by runtime, 2 by genre)" in note
     assert "1 matched, showing 1" in note
+
+
+def _rec(trakt: int) -> TraktRecommendedMovie:
+    return _movie(trakt, None, None)
+
+
+def test_collected_ids_are_removed_and_counted() -> None:
+    result = filter_movies(
+        [_rec(1), _rec(2), _rec(3)],
+        max_runtime=None,
+        genres_include=None,
+        collected_ids=frozenset({2, 99}),
+    )
+    assert [m.ids.trakt for m in result.kept] == [1, 3]
+    assert result.removed_as_collected == 1
+
+
+def test_no_collected_ids_removes_nothing() -> None:
+    result = filter_movies([_rec(1)], max_runtime=None, genres_include=None)
+    assert result.removed_as_collected == 0
+    assert len(result.kept) == 1

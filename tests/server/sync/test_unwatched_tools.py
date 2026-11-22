@@ -65,7 +65,10 @@ def _mock_client(watched: list[WatchedMovieItem]) -> MagicMock:
 
 @pytest.mark.asyncio
 async def test_lists_unwatched_sorted_with_counts() -> None:
-    with patch("server.sync.tools.SyncClient") as client_class:
+    with (
+        patch("server.sync.tools.SyncClient") as client_class,
+        patch("server.sync.cache.SyncClient", client_class),
+    ):
         client = client_class.return_value = _mock_client([_watched(2)])
 
         output = await unwatched_in_collection(sort="rating", limit=1)
@@ -82,7 +85,10 @@ async def test_lists_unwatched_sorted_with_counts() -> None:
 
 @pytest.mark.asyncio
 async def test_random_sort_uses_the_injected_source() -> None:
-    with patch("server.sync.tools.SyncClient") as client_class:
+    with (
+        patch("server.sync.tools.SyncClient") as client_class,
+        patch("server.sync.cache.SyncClient", client_class),
+    ):
         client_class.return_value = _mock_client([])
 
         first = await unwatched_in_collection(
@@ -99,7 +105,10 @@ async def test_random_sort_uses_the_injected_source() -> None:
 
 @pytest.mark.asyncio
 async def test_repeated_calls_fetch_once() -> None:
-    with patch("server.sync.tools.SyncClient") as client_class:
+    with (
+        patch("server.sync.tools.SyncClient") as client_class,
+        patch("server.sync.cache.SyncClient", client_class),
+    ):
         client = client_class.return_value = _mock_client([])
 
         await unwatched_in_collection()
@@ -112,7 +121,10 @@ async def test_repeated_calls_fetch_once() -> None:
 @pytest.mark.asyncio
 async def test_add_to_history_invalidates_the_watched_cache() -> None:
     summary = HistorySummary(added=HistorySummaryCount(movies=1))
-    with patch("server.sync.tools.SyncClient") as client_class:
+    with (
+        patch("server.sync.tools.SyncClient") as client_class,
+        patch("server.sync.cache.SyncClient", client_class),
+    ):
         client = client_class.return_value = _mock_client([])
         client.add_to_history = AsyncMock(return_value=summary)
 
@@ -127,7 +139,10 @@ async def test_add_to_history_invalidates_the_watched_cache() -> None:
 @pytest.mark.asyncio
 async def test_remove_from_history_invalidates_the_watched_cache() -> None:
     summary = HistorySummary(deleted=HistorySummaryCount(movies=1))
-    with patch("server.sync.tools.SyncClient") as client_class:
+    with (
+        patch("server.sync.tools.SyncClient") as client_class,
+        patch("server.sync.cache.SyncClient", client_class),
+    ):
         client = client_class.return_value = _mock_client([_watched(2)])
         client.remove_from_history = AsyncMock(return_value=summary)
 
@@ -140,7 +155,10 @@ async def test_remove_from_history_invalidates_the_watched_cache() -> None:
 
 @pytest.mark.asyncio
 async def test_failed_history_write_still_drops_the_cache() -> None:
-    with patch("server.sync.tools.SyncClient") as client_class:
+    with (
+        patch("server.sync.tools.SyncClient") as client_class,
+        patch("server.sync.cache.SyncClient", client_class),
+    ):
         client = client_class.return_value = _mock_client([])
         client.add_to_history = AsyncMock(return_value="API error")
 
@@ -154,7 +172,10 @@ async def test_failed_history_write_still_drops_the_cache() -> None:
 
 @pytest.mark.asyncio
 async def test_history_write_that_raises_still_drops_the_cache() -> None:
-    with patch("server.sync.tools.SyncClient") as client_class:
+    with (
+        patch("server.sync.tools.SyncClient") as client_class,
+        patch("server.sync.cache.SyncClient", client_class),
+    ):
         client = client_class.return_value = _mock_client([])
         client.add_to_history = AsyncMock(side_effect=TimeoutError("timed out"))
 
@@ -168,7 +189,10 @@ async def test_history_write_that_raises_still_drops_the_cache() -> None:
 
 @pytest.mark.asyncio
 async def test_logged_out_session_is_not_served_cached_data() -> None:
-    with patch("server.sync.tools.SyncClient") as client_class:
+    with (
+        patch("server.sync.tools.SyncClient") as client_class,
+        patch("server.sync.cache.SyncClient", client_class),
+    ):
         client = client_class.return_value = _mock_client([])
         await unwatched_in_collection()
 
