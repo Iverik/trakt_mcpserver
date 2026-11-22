@@ -12,6 +12,7 @@ MAX_SYNC_PAGE_SIZE: Final[int] = 250  # Items per page for fetch-everything sync
 SYNC_CACHE_TTL_SECONDS: Final[float] = 15 * 60  # Lifetime of cached sync snapshots
 UNWATCHED_DEFAULT_LIMIT: Final[int] = 25  # Films shown by unwatched_in_collection
 UNWATCHED_MAX_LIMIT: Final[int] = 100  # Upper bound for the films shown
+HAVE_I_SEEN_MAX_IDS: Final[int] = 100  # Trakt ids accepted by one have_i_seen call
 
 
 class EffectiveLimit(NamedTuple):

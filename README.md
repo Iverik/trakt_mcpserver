@@ -167,6 +167,8 @@ Add to your Claude Desktop MCP configuration file:
   - Sort by rating, runtime, collected date, release date or at random, and limit the list
   - Each line shows title, runtime, genres, rating and resolution
   - Movies only for now; shows are planned. The collection and watched set are cached for 15 minutes and refreshed when you add or remove history
+- **Check if you have seen specific movies**: `have_i_seen` takes Trakt movie IDs and reports, per ID, whether you watched it, how many times, when you last watched it and your own rating
+  - Uses the same cached watched history as `unwatched_in_collection`, plus your movie ratings (cached 15 minutes, refreshed when you add or remove history or ratings)
 - **Track show progress**: See your watched progress for any TV show
   - View episodes watched vs aired with completion percentage
   - See your next episode to watch
@@ -545,6 +547,9 @@ fetch_user_collection(collection_type="movies", include_metadata=True)
 # Collected movies you have not watched: under 2 hours, any drama or thriller, no horror
 unwatched_in_collection(max_runtime=120, genres_include=["drama", "thriller"], genres_exclude=["horror"], min_trakt_rating=7.0, sort="rating", limit=10)
 
+# Have I seen these? (Trakt movie IDs)
+have_i_seen(trakt_ids=[1, 314, 6])
+
 # Fetch user's watchlist with pagination and sorting
 fetch_user_watchlist(watchlist_type="all", sort_by="rank", sort_how="asc", page=1)
 
@@ -841,6 +846,7 @@ Once installed, Claude can use this MCP server to answer questions about enterta
 - "Add a 9/10 rating for Breaking Bad"
 - "Show me my watchlist"
 - "List my collected movies with resolution and HDR"
+- "Have I seen Inception? What did I rate it?"
 - "What do I own that I have not watched? Something under two hours, rated 7 or better"
 - "What movies are on my watchlist?"
 - "Add The Godfather to my watchlist"

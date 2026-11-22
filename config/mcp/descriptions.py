@@ -19,6 +19,7 @@ from config.api.calendars import CALENDAR_DEFAULT_DAYS, CALENDAR_MAX_DAYS
 from config.api.constants import (
     DEFAULT_FETCH_ALL_LIMIT,
     DEFAULT_LIMIT,
+    HAVE_I_SEEN_MAX_IDS,
     UNWATCHED_DEFAULT_LIMIT,
     UNWATCHED_MAX_LIMIT,
 )
@@ -37,6 +38,7 @@ __all__: Final[list[str]] = [
     "EXTENDED_DESCRIPTION",
     "GENRES_INCLUDE_DESCRIPTION",
     "GUEST_STARS_DESCRIPTION",
+    "HAVE_I_SEEN_IDS_DESCRIPTION",
     "HISTORY_END_AT_DESCRIPTION",
     "HISTORY_ITEMS_DESCRIPTION",
     "HISTORY_ITEM_ID_DESCRIPTION",
@@ -215,6 +217,10 @@ COLLECTION_TYPE_DESCRIPTION: Final[str] = (
 COLLECTION_INCLUDE_METADATA_DESCRIPTION: Final[str] = (
     "Include collection metadata (media type, resolution, HDR, audio, "
     "audio channels, 3D) when the item has it. Default false"
+)
+HAVE_I_SEEN_IDS_DESCRIPTION: Final[str] = (
+    f"Trakt movie IDs (positive integers, e.g. [1, 314]), 1-{HAVE_I_SEEN_MAX_IDS} "
+    "per call. Not slugs, IMDB or TMDB IDs"
 )
 UNWATCHED_TYPE_DESCRIPTION: Final[str] = (
     "Type of collection: 'movies' (default). Shows are not supported yet"

@@ -12,11 +12,17 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from client.pool import get_client
 from client.shows.seasons import ShowSeasonsClient
 from client.sync.client import SyncClient
-from config.api import DEFAULT_LIMIT, UNWATCHED_DEFAULT_LIMIT, UNWATCHED_MAX_LIMIT
+from config.api import (
+    DEFAULT_LIMIT,
+    HAVE_I_SEEN_MAX_IDS,
+    UNWATCHED_DEFAULT_LIMIT,
+    UNWATCHED_MAX_LIMIT,
+)
 from config.api.sync import RATING_MAX, RATING_MIN, RATINGS_SUMMARY_RECENT_COUNT
 from config.mcp.descriptions import (
     COLLECTION_INCLUDE_METADATA_DESCRIPTION,
     COLLECTION_TYPE_DESCRIPTION,
+    HAVE_I_SEEN_IDS_DESCRIPTION,
     HISTORY_END_AT_DESCRIPTION,
     HISTORY_ITEM_ID_DESCRIPTION,
     HISTORY_ITEMS_DESCRIPTION,
@@ -52,6 +58,7 @@ from config.mcp.descriptions import (
 from models.formatters.sync_collection import SyncCollectionFormatters
 from models.formatters.sync_history import SyncHistoryFormatters
 from models.formatters.sync_ratings import SyncRatingsFormatters
+from models.formatters.sync_seen import SyncSeenFormatters
 from models.formatters.sync_unwatched import SyncUnwatchedFormatters
 from models.formatters.sync_watchlist import SyncWatchlistFormatters
 from models.sync.collection import CollectionFetchResult
@@ -83,9 +90,12 @@ from models.types.timestamps import WatchedAtValue
 from server.base import IdentifierValidatorMixin, ToolErrors
 from server.sync.cache import (
     COLLECTED_MOVIES_CACHE,
+    RATED_MOVIES_CACHE,
     WATCHED_MOVIES_CACHE,
+    invalidate_ratings_cache,
     invalidate_watched_cache,
 )
+from server.sync.seen_lookup import lookup_seen
 from server.sync.unwatched_selection import select_unwatched
 from utils.api.error_types import AuthenticationRequiredError
 from utils.api.errors import InvalidParamsError, MCPError, handle_api_errors_func
@@ -661,7 +671,12 @@ async def add_user_ratings(
         request_data: dict[str, Any] = {rating_type: sync_items}
         request = TraktSyncRatingsRequest(**request_data)
 
-        summary = await client.add_sync_ratings(request)
+        # A write that times out may still have been applied by Trakt, so the
+        # cached ratings are dropped whether or not the call succeeded.
+        try:
+            summary = await client.add_sync_ratings(request)
+        finally:
+            invalidate_ratings_cache()
 
         summary = _unwrap_or_raise(
             summary,
@@ -718,7 +733,12 @@ async def remove_user_ratings(
         request_data: dict[str, Any] = {rating_type: sync_items}
         request = TraktSyncRatingsRequest(**request_data)
 
-        summary = await client.remove_sync_ratings(request)
+        # A write that times out may still have been applied by Trakt, so the
+        # cached ratings are dropped whether or not the call succeeded.
+        try:
+            summary = await client.remove_sync_ratings(request)
+        finally:
+            invalidate_ratings_cache()
 
         summary = _unwrap_or_raise(
             summary,
@@ -859,6 +879,55 @@ async def unwatched_in_collection(
             + "pages; this list is incomplete."
         )
     return output
+
+
+async def _load_rated_movies() -> list[TraktSyncRating]:
+    """Fetch every movie rating, across all pages."""
+    result = await get_client(SyncClient).get_all_sync_ratings("movies")
+    return _unwrap_or_raise(
+        result,
+        resource_type="user_movies_ratings",
+        resource_id="user_ratings_movies",
+        operation="have_i_seen",
+    )
+
+
+class HaveISeenParams(BaseModel):
+    """Parameters for the have_i_seen lookup."""
+
+    trakt_ids: list[Annotated[int, Field(ge=1)]] = Field(
+        min_length=1, max_length=HAVE_I_SEEN_MAX_IDS
+    )
+
+
+@handle_api_errors_func
+async def have_i_seen(trakt_ids: list[int]) -> str:
+    """Report whether each Trakt movie id has been watched, and its rating.
+
+    Uses the same cached watched set as unwatched_in_collection, plus the
+    cached movie ratings (15 minutes; refreshed when history or ratings
+    change through this server).
+
+    Args:
+        trakt_ids: Trakt movie ids (positive integers)
+
+    Returns:
+        One line per id with the title when known, watched state, play count,
+        last watched date and the user's rating
+
+    Raises:
+        AuthenticationRequiredError: If user is not authenticated
+        ValidationError: If an id is not a positive integer or the list is
+            empty or too long
+    """
+    params = HaveISeenParams(trakt_ids=trakt_ids)
+    logger.debug("have_i_seen called with %d ids", len(params.trakt_ids))
+    await _require_auth(get_client(SyncClient), "check your watch history")
+    watched = await WATCHED_MOVIES_CACHE.get_or_load(_load_watched_movies)
+    ratings = await RATED_MOVIES_CACHE.get_or_load(_load_rated_movies)
+    return SyncSeenFormatters.format_seen(
+        lookup_seen(params.trakt_ids, watched, ratings)
+    )
 
 
 @handle_api_errors_func
@@ -1287,6 +1356,7 @@ def register_sync_tools(
     ToolHandler,
     ToolHandler,
     ToolHandler,
+    ToolHandler,
 ]:
     """Register sync tools (ratings, watchlist, collection, history).
 
@@ -1471,6 +1541,27 @@ def register_sync_tools(
         )
 
     @mcp.tool(
+        name="have_i_seen",
+        description=(
+            "Check whether the user has watched specific movies, by Trakt "
+            "movie ID. Per ID: watched or not, play count, last watched date "
+            "and the user's own rating. Uses the whole watched history, so "
+            "no paging is needed. Requires OAuth authentication."
+        ),
+    )
+    async def have_i_seen_tool(
+        trakt_ids: Annotated[
+            list[int],
+            Field(
+                min_length=1,
+                max_length=HAVE_I_SEEN_MAX_IDS,
+                description=HAVE_I_SEEN_IDS_DESCRIPTION,
+            ),
+        ],
+    ) -> str:
+        return await have_i_seen(trakt_ids)
+
+    @mcp.tool(
         name="fetch_user_watchlist",
         description=(
             "Fetch the authenticated user's watchlist from Trakt. "
@@ -1631,6 +1722,7 @@ def register_sync_tools(
         remove_user_ratings_tool,
         fetch_user_collection_tool,
         unwatched_in_collection_tool,
+        have_i_seen_tool,
         fetch_user_watchlist_tool,
         add_user_watchlist_tool,
         remove_user_watchlist_tool,
